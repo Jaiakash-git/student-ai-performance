@@ -5,6 +5,7 @@ from services.performance_service import (
     analyze_performance,
     get_performance_status
 )
+from ml.predict import predict_performance
 
 
 # Get student name
@@ -50,4 +51,12 @@ else:
 
     # Get performance status
     status = get_performance_status(average, overall_attendance)
-    print(f"Performance Status: {status}")
+
+    ml_prediction = predict_performance(
+    average,
+    overall_attendance,
+    highest_mark,
+    min(float(mark) for subject, mark in results)
+)
+    print(f"Rule-Based Status: {status}")
+    print(f"ML Prediction: {ml_prediction}")

@@ -21,3 +21,23 @@ def get_student_marks(student_name):
     connection.close()
 
     return results
+
+
+def get_student_id(student_name):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT student_id FROM students WHERE name = %s",
+        (student_name,)
+    )
+
+    result = cursor.fetchone()
+
+    cursor.close()
+    connection.close()
+
+    if result:
+        return result[0]
+
+    return None

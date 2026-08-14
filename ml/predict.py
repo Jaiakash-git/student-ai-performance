@@ -2,11 +2,17 @@ import joblib
 import pandas as pd
 
 
-def predict_performance(average_marks, attendance,
-                        highest_mark, lowest_mark):
+def predict_performance(
+    average_marks,
+    attendance,
+    highest_mark,
+    lowest_mark
+):
 
     # Load trained model
-    model = joblib.load("ml/student_performance_model.pkl")
+    model = joblib.load(
+        "ml/student_performance_model.pkl"
+    )
 
     # Prepare student data
     student_data = pd.DataFrame([{
@@ -16,10 +22,18 @@ def predict_performance(average_marks, attendance,
         "lowest_mark": lowest_mark
     }])
 
-    # Make prediction
+    # Prediction
     prediction = model.predict(student_data)[0]
 
+    # Probability of each class
+    probabilities = model.predict_proba(student_data)[0]
+
+    # Probability of "Needs Attention" (class 1)
+    risk_probability = probabilities[1] * 100
+
     if prediction == 1:
-        return "Needs Attention"
+        status = "Needs Attention"
     else:
-        return "No Attention Required"
+        status = "No Attention Required"
+
+    return status, risk_probability

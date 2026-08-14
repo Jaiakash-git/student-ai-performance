@@ -6,6 +6,7 @@ from services.performance_service import (
     get_performance_status
 )
 from ml.predict import predict_performance
+from services.recommendation_service import generate_recommendation
 
 
 # Get student name
@@ -16,6 +17,11 @@ student_id = get_student_id(student_name)
 
 # Fetch marks
 results = get_student_marks(student_name)
+
+lowest_subject = min(
+    results,
+    key=lambda item: float(item[1])
+)[0]
 
 # Fetch attendance
 attendance_results = get_student_attendance(student_id)
@@ -52,11 +58,22 @@ else:
     # Get performance status
     status = get_performance_status(average, overall_attendance)
 
-    ml_prediction = predict_performance(
+    ml_prediction, risk_probability = predict_performance(
     average,
     overall_attendance,
     highest_mark,
     min(float(mark) for subject, mark in results)
 )
+
+    recommendation = generate_recommendation(
+    average,
+    overall_attendance,
+    risk_probability,
+    lowest_subject,
+    highest_subject
+)
     print(f"Rule-Based Status: {status}")
     print(f"ML Prediction: {ml_prediction}")
+    print(f"Risk Probability: {risk_probability:.2f}%")
+    print(f"Recommendation: {recommendation}")
+

@@ -11,9 +11,11 @@ from services.performance_service import (
 
 from services.attendance_service import get_student_attendance
 
-from ml.predict import predict_performance
-
 from services.recommendation_service import generate_recommendation
+
+from services.trend_service import analyze_trend
+
+from ml.predict import predict_performance
 
 
 # ==========================================
@@ -102,6 +104,15 @@ else:
 
 
     # ==========================================
+    #          TREND ANALYSIS
+    # ==========================================
+
+    trend, average_improvement, overall_trend = analyze_trend(
+        exam_results
+    )
+
+
+    # ==========================================
     #          STUDENT PERFORMANCE REPORT
     # ==========================================
 
@@ -140,6 +151,39 @@ else:
 
 
     # ==========================================
+    #          PERFORMANCE TREND
+    # ==========================================
+
+    print("\n---------- PERFORMANCE TREND ---------------")
+
+    for subject, first_mark, second_mark, improvement in trend:
+
+        if improvement > 0:
+            change = f"+{improvement:.2f}"
+
+        else:
+            change = f"{improvement:.2f}"
+
+        print(
+            f"{subject:<10}: "
+            f"{first_mark:.2f} -> "
+            f"{second_mark:.2f} "
+            f"({change})"
+        )
+
+
+    print(
+        f"\nAverage Improvement : "
+        f"{average_improvement:+.2f}"
+    )
+
+    print(
+        f"Overall Trend       : "
+        f"{overall_trend}"
+    )
+
+
+    # ==========================================
     #          ATTENDANCE
     # ==========================================
 
@@ -164,9 +208,15 @@ else:
 
     print("\n-------------- AI ANALYSIS ----------------")
 
-    print(f"Rule-Based Status       : {status}")
+    print(
+        f"Rule-Based Status       : "
+        f"{status}"
+    )
 
-    print(f"ML Prediction           : {ml_prediction}")
+    print(
+        f"ML Prediction           : "
+        f"{ml_prediction}"
+    )
 
     print(
         f"Risk Probability        : "
@@ -180,9 +230,15 @@ else:
 
     print("\n----------- PERFORMANCE SUMMARY ------------")
 
-    print(f"Average Mark            : {average:.2f}")
+    print(
+        f"Average Mark            : "
+        f"{average:.2f}"
+    )
 
-    print(f"Highest Mark            : {highest_mark:.2f}")
+    print(
+        f"Highest Mark            : "
+        f"{highest_mark:.2f}"
+    )
 
     print(
         f"Highest Scoring Subject : "

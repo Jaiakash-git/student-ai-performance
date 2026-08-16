@@ -1,0 +1,60 @@
+text,intent
+what is my average,average
+what is my average mark,average
+tell me my average,average
+how much did i score on average,average
+what is my overall average,average
+how am i doing academically,average
+what is my attendance,attendance
+how much attendance do i have,attendance
+tell me my attendance percentage,attendance
+what percentage of classes did i attend,attendance
+am i maintaining good attendance,attendance
+show my attendance,attendance
+which subject is my best,highest_subject
+which is my highest scoring subject,highest_subject
+what is my strongest subject,highest_subject
+which subject did i score highest in,highest_subject
+which subject has the highest marks,highest_subject
+where did i perform the best,highest_subject
+which subject is my weakest,lowest_subject
+which subject has my lowest marks,lowest_subject
+what is my lowest scoring subject,lowest_subject
+which subject should i improve,lowest_subject
+where am i performing poorly,lowest_subject
+what is my weakest subject,lowest_subject
+am i improving,trend
+how is my performance changing,trend
+am i getting better,trend
+show my performance trend,trend
+how have my marks changed,trend
+compare my internal marks,trend
+am i at risk,risk
+do i need attention,risk
+what is my risk level,risk
+how much risk do i have,risk
+should i be worried about my performance,risk
+do i need academic attention,risk
+what should i improve,recommendation
+give me a recommendation,recommendation
+what do you suggest,recommendation
+how can i improve,recommendation
+what should i focus on,recommendation
+give me some advice,recommendation
+show my marks,marks
+what are my marks,marks
+show my scores,marks
+tell me my marks,marks
+what did i score,marks
+display my subject marks,marks
+how am i performing,performance
+how is my performance,performance
+tell me about my performance,performance
+give me my performance report,performance
+how am i doing,performance
+show my performance,performance
+bye,exit
+exit,exit
+quit,exit
+goodbye,exit
+stop,exit

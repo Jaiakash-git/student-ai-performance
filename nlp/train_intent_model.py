@@ -6,6 +6,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import confusion_matrix
 
 
 # ==========================================
@@ -98,6 +99,24 @@ print(
         zero_division=0
     )
 )
+
+print("\nConfusion Matrix:")
+
+labels = sorted(y.unique())
+
+cm = confusion_matrix(
+    y_test,
+    y_pred,
+    labels=labels
+)
+
+cm_df = pd.DataFrame(
+    cm,
+    index=labels,
+    columns=labels
+)
+
+print(cm_df)
 
 
 # ==========================================

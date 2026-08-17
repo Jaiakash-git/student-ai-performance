@@ -29,3 +29,8 @@ def start_assistant(student_name):
         )
 
         print(f"\nAI: {response}")
+
+
+if __name__ == "__main__":
+    student_name = input("Enter student name: ")
+    start_assistant(student_name)

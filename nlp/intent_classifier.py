@@ -6,13 +6,15 @@ def classify_intent(user_input):
     if text in ["bye", "exit", "quit", "stop"]:
         return "exit"
 
-    # Highest subject
+    # Highest / strongest subject
     if "subject" in text and (
-        "highest" in text
+       "highest" in text
         or "best" in text
         or "top" in text
-    ):
-        return "highest_subject"
+        or "strongest" in text
+        or "strong" in text
+   ):
+     return "highest_subject"
 
     # Lowest / weak subject
     if "subject" in text and (

@@ -1,4 +1,4 @@
-from intent_classifier import classify_intent
+from nlp.intent_classifier import classify_intent
 
 
 while True:

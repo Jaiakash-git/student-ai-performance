@@ -1,12 +1,22 @@
 import os
+import joblib
 import pandas as pd
 
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import (
+    train_test_split,
+    StratifiedKFold,
+    cross_val_score
+)
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import accuracy_score, classification_report
-from sklearn.metrics import confusion_matrix
+
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix
+)
 
 
 # ==========================================
@@ -84,14 +94,18 @@ y_pred = model.predict(X_test)
 
 
 # ==========================================
-# EVALUATION
+# TEST SET EVALUATION
 # ==========================================
 
-accuracy = accuracy_score(y_test, y_pred)
+accuracy = accuracy_score(
+    y_test,
+    y_pred
+)
 
 print(f"\nModel Accuracy: {accuracy:.2f}")
 
 print("\nClassification Report:")
+
 print(
     classification_report(
         y_test,
@@ -99,6 +113,11 @@ print(
         zero_division=0
     )
 )
+
+
+# ==========================================
+# CONFUSION MATRIX
+# ==========================================
 
 print("\nConfusion Matrix:")
 
@@ -120,6 +139,40 @@ print(cm_df)
 
 
 # ==========================================
+# 5-FOLD STRATIFIED CROSS-VALIDATION
+# ==========================================
+
+print("\n5-Fold Stratified Cross-Validation:")
+
+skf = StratifiedKFold(
+    n_splits=5,
+    shuffle=True,
+    random_state=42
+)
+
+cv_scores = cross_val_score(
+    model,
+    X,
+    y,
+    cv=skf,
+    scoring="accuracy"
+)
+
+print("CV Scores:")
+
+for i, score in enumerate(cv_scores, start=1):
+    print(f"Fold {i}: {score:.2f}")
+
+print(
+    f"\nMean CV Accuracy: {cv_scores.mean():.2f}"
+)
+
+print(
+    f"CV Standard Deviation: {cv_scores.std():.2f}"
+)
+
+
+# ==========================================
 # TEST SAMPLE QUESTIONS
 # ==========================================
 
@@ -136,7 +189,9 @@ print("\nSample Predictions:")
 
 for question in test_questions:
 
-    prediction = model.predict([question])[0]
+    prediction = model.predict(
+        [question]
+    )[0]
 
     print(
         f"{question} -> {prediction}"
@@ -146,8 +201,6 @@ for question in test_questions:
 # ==========================================
 # SAVE MODEL
 # ==========================================
-
-import joblib
 
 models_directory = os.path.join(
     os.path.dirname(__file__),

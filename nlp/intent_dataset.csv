@@ -246,3 +246,38 @@ am i improving compared with my previous exam,trend
 what changed in my marks between exams,trend
 has my performance gone up or down,trend
 show whether my marks are improving or declining,trend
+
+
+see you later,exit
+i want to end this conversation,exit
+let's end this session,exit
+i am leaving now,exit
+stop the assistant,exit
+end our conversation,exit
+i don't have any more questions,exit
+i am done asking questions,exit
+that's all for now,exit
+close the chat,exit
+
+how am i doing in my studies,performance
+how good is my current performance,performance
+what is my current academic status,performance
+give me an overview of how i am doing,performance
+how would you describe my current performance,performance
+am i performing well in my studies,performance
+what is the current state of my performance,performance
+tell me how i am doing overall,performance
+give me an assessment of my current performance,performance
+how strong is my overall academic performance,performance
+
+
+did my performance improve from internal 1 to internal 2,trend
+how did my marks change between internal exams,trend
+did i perform better in my second internal,trend
+has my performance improved since my previous exam,trend
+compare my first and second internal marks,trend
+did my scores increase in the latest exam,trend
+how much have my marks changed since the last exam,trend
+am i improving compared with my previous results,trend
+did my academic performance get better over time,trend
+has my performance improved compared with my earlier exams,trend

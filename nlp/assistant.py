@@ -35,26 +35,70 @@ def start_assistant(student_name):
         text = user_input.lower().strip()
 
         # ======================================
+        # EMPTY INPUT
+        # ======================================
+
+        if not text:
+            continue
+
+        # ======================================
         # RESET FOLLOW-UP FLAG
         # ======================================
 
         context["follow_up"] = False
 
         # ======================================
-        # INTENT DETECTION
+        # INTENT CLASSIFICATION
         # ======================================
 
         intent = classify_intent(user_input)
 
         # ======================================
-        # FOLLOW-UP QUESTIONS
+        # CONTEXT-AWARE FOLLOW-UP QUESTIONS
         # ======================================
 
         # --------------------------------------
-        # Highest → Lowest
+        # WHY
         # --------------------------------------
 
-        if (
+        if text in [
+            "why",
+            "why?",
+            "how",
+            "how?",
+            "explain",
+            "explain why",
+            "can you explain"
+        ]:
+
+            if context["last_intent"] is not None:
+
+                intent = context["last_intent"]
+                context["follow_up"] = True
+
+        # --------------------------------------
+        # "WHY" / "HOW" WITH EXTRA WORDS
+        # --------------------------------------
+
+        elif any(phrase in text for phrase in [
+            "why is that",
+            "why is it",
+            "why so",
+            "how so",
+            "can you explain that",
+            "what makes it"
+        ]):
+
+            if context["last_intent"] is not None:
+
+                intent = context["last_intent"]
+                context["follow_up"] = True
+
+        # --------------------------------------
+        # HIGHEST → LOWEST
+        # --------------------------------------
+
+        elif (
             context["last_intent"] == "highest_subject"
             and any(word in text for word in [
                 "lowest",
@@ -63,10 +107,11 @@ def start_assistant(student_name):
                 "weak"
             ])
         ):
+
             intent = "lowest_subject"
 
         # --------------------------------------
-        # Lowest → Highest
+        # LOWEST → HIGHEST
         # --------------------------------------
 
         elif (
@@ -78,12 +123,32 @@ def start_assistant(student_name):
                 "top"
             ])
         ):
+
             intent = "highest_subject"
 
         # --------------------------------------
-        # Context-dependent questions
-        # Example:
-        # "How is my attendance?"
+        # FOLLOW-UP:
+        # "how can I improve it?"
+        # --------------------------------------
+
+        elif (
+            context["last_subject"] is not None
+            and any(phrase in text for phrase in [
+                "how can i improve it",
+                "how do i improve it",
+                "how can i improve",
+                "how should i improve it",
+                "what can i do about it",
+                "how do i get better at it",
+                "how can i get better at it"
+            ])
+        ):
+
+            intent = "recommendation"
+            context["follow_up"] = True
+
+        # --------------------------------------
+        # ATTENDANCE FOLLOW-UP
         # "Is that good?"
         # --------------------------------------
 
@@ -103,6 +168,7 @@ def start_assistant(student_name):
                 "is it bad"
             ])
         ):
+
             intent = context["last_intent"]
             context["follow_up"] = True
 

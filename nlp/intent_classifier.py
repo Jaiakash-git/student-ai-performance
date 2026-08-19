@@ -1,4 +1,5 @@
 import os
+from pydoc import text
 import joblib
 
 
@@ -44,6 +45,25 @@ def classify_intent(user_input):
     ):
         return "exit"
 
+    # Follow-up / short subject questions
+    if any(phrase in text for phrase in [
+    "what about the lowest",
+    "what about lowest",
+    "what is the lowest",
+    "which is the lowest",
+    "lowest one"
+]):
+       return "lowest_subject"
+
+    if any(phrase in text for phrase in [
+    "what about the highest",
+    "what about highest",
+    "what is the highest",
+    "which is the highest",
+    "highest one"
+]):
+      return "highest_subject"
+
 
     # Highest / strongest subject
     if "subject" in text and (
@@ -83,29 +103,7 @@ def classify_intent(user_input):
     ]):
         return "average"
 
-
-    # Trend / comparison
-    if any(word in text for word in [
-    "improving",
-    "improvement",
-    "trend",
-    "progress",
-    "getting better",
-    "getting worse",
-    "changed",
-    "change",
-    "compared to",
-    "compared with",
-    "previous",
-    "earlier",
-    "before",
-    "last exam",
-    "previous exam"
-]):
-       return "trend"
-
-
-    # Risk
+     # Risk
     if any(word in text for word in [
         "risk",
         "at risk",
@@ -124,6 +122,25 @@ def classify_intent(user_input):
         "improve"
     ]):
         return "recommendation"
+
+    #trend
+    if any(word in text for word in [
+    "improving",
+    "trend",
+    "progress",
+    "getting better",
+    "getting worse",
+    "changed",
+    "change",
+    "compared to",
+    "compared with",
+    "previous",
+    "earlier",
+    "before",
+    "last exam",
+    "previous exam"
+    ]):
+        return "trend"
 
 
     # Marks

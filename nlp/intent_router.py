@@ -1,89 +1,39 @@
-from services.performance_service import (
-    analyze_performance,
-    get_performance_status
-)
-
-from services.attendance_service import (
-    get_student_attendance
-)
-
+from services.performance_service import analyze_performance
+from services.attendance_service import get_student_attendance
 from services.student_service import (
     get_student_marks,
     get_student_exam_marks,
     get_student_id
 )
-
 from services.trend_service import analyze_trend
 
-from ml.predict import predict_performance
 
-from services.recommendation_service import (
-    generate_recommendation
-)
+def route_intent(intent, student_name, context=None):
 
-
-def route_intent(intent, student_name):
+    # Create context if not provided
+    if context is None:
+        context = {
+            "last_intent": None,
+            "last_subject": None
+        }
 
     # ==========================================
-    # GET STUDENT ID
+    # GET STUDENT DATA
     # ==========================================
 
     student_id = get_student_id(student_name)
 
-    if not student_id:
+    if student_id is None:
         return "Student not found."
-
-
-    # ==========================================
-    # GET MARKS
-    # ==========================================
 
     results = get_student_marks(student_name)
 
     if not results:
-        return "No marks found for this student."
+        return "Student not found."
 
+    attendance_results = get_student_attendance(student_id)
 
-    # ==========================================
-    # GET ATTENDANCE
-    # ==========================================
-
-    attendance_results = get_student_attendance(
-        student_id
-    )
-
-
-    # ==========================================
-    # GET EXAM-WISE MARKS
-    # ==========================================
-
-    exam_results = get_student_exam_marks(
-        student_name
-    )
-
-
-    # ==========================================
-    # COMMON PERFORMANCE ANALYSIS
-    # ==========================================
-
-    average, highest_mark, highest_subject, overall_attendance = (
-        analyze_performance(
-            results,
-            attendance_results
-        )
-    )
-
-
-    # ==========================================
-    # LOWEST MARK
-    # ==========================================
-
-    lowest_subject, lowest_mark = min(
-        results,
-        key=lambda item: float(item[1])
-    )
-
-    lowest_mark = float(lowest_mark)
+    exam_results = get_student_exam_marks(student_name)
 
 
     # ==========================================
@@ -92,10 +42,12 @@ def route_intent(intent, student_name):
 
     if intent == "average":
 
-        return (
-            f"Your average mark is "
-            f"{average:.2f}."
+        average, _, _, _ = analyze_performance(
+            results,
+            attendance_results
         )
+
+        return f"Your average mark is {average:.2f}."
 
 
     # ==========================================
@@ -103,6 +55,11 @@ def route_intent(intent, student_name):
     # ==========================================
 
     elif intent == "attendance":
+
+        _, _, _, overall_attendance = analyze_performance(
+            results,
+            attendance_results
+        )
 
         return (
             f"Your overall attendance is "
@@ -119,7 +76,6 @@ def route_intent(intent, student_name):
         response = "Here are your marks:\n"
 
         for subject, mark in results:
-
             response += (
                 f"{subject}: "
                 f"{float(mark):.2f}\n"
@@ -134,6 +90,14 @@ def route_intent(intent, student_name):
 
     elif intent == "highest_subject":
 
+        _, highest_mark, highest_subject, _ = analyze_performance(
+            results,
+            attendance_results
+        )
+
+        # Store subject in context
+        context["last_subject"] = highest_subject
+
         return (
             f"Your highest scoring subject is "
             f"{highest_subject} with "
@@ -147,80 +111,19 @@ def route_intent(intent, student_name):
 
     elif intent == "lowest_subject":
 
+        lowest_subject, lowest_mark = min(
+            results,
+            key=lambda item: float(item[1])
+        )
+
+        # Store subject in context
+        context["last_subject"] = lowest_subject
+
         return (
             f"Your lowest scoring subject is "
             f"{lowest_subject} with "
-            f"{lowest_mark:.2f} marks."
+            f"{float(lowest_mark):.2f} marks."
         )
-
-
-    # ==========================================
-    # PERFORMANCE
-    # ==========================================
-
-    elif intent == "performance":
-
-        status = get_performance_status(
-            average,
-            overall_attendance
-        )
-
-        return (
-            f"Your current performance is "
-            f"{status}.\n"
-            f"Average mark: {average:.2f}\n"
-            f"Overall attendance: "
-            f"{overall_attendance:.2f}%"
-        )
-
-
-    # ==========================================
-    # RISK
-    # ==========================================
-
-    elif intent == "risk":
-
-        ml_prediction, risk_probability = (
-            predict_performance(
-                average,
-                overall_attendance,
-                highest_mark,
-                lowest_mark
-            )
-        )
-
-        return (
-            f"Your current ML prediction is "
-            f"{ml_prediction}.\n"
-            f"Risk probability: "
-            f"{risk_probability:.2f}%."
-        )
-
-
-    # ==========================================
-    # RECOMMENDATION
-    # ==========================================
-
-    elif intent == "recommendation":
-
-        ml_prediction, risk_probability = (
-            predict_performance(
-                average,
-                overall_attendance,
-                highest_mark,
-                lowest_mark
-            )
-        )
-
-        recommendation = generate_recommendation(
-            average,
-            overall_attendance,
-            risk_probability,
-            lowest_subject,
-            highest_subject
-        )
-
-        return recommendation
 
 
     # ==========================================
@@ -229,30 +132,22 @@ def route_intent(intent, student_name):
 
     elif intent == "trend":
 
-        trend, average_improvement, overall_trend = (
-            analyze_trend(
-                exam_results
-            )
+        trend, average_improvement, overall_trend = analyze_trend(
+            exam_results
         )
 
         if not trend:
-
             return (
                 "There is not enough exam data "
                 "to calculate your trend."
             )
 
         response = (
-            f"Your overall performance trend "
-            f"is {overall_trend}.\n\n"
+            f"Your overall performance trend is "
+            f"{overall_trend}.\n\n"
         )
 
-        for (
-            subject,
-            first_mark,
-            second_mark,
-            improvement
-        ) in trend:
+        for subject, first_mark, second_mark, improvement in trend:
 
             response += (
                 f"{subject}: "
@@ -270,13 +165,93 @@ def route_intent(intent, student_name):
 
 
     # ==========================================
+    # PERFORMANCE
+    # ==========================================
+
+    elif intent == "performance":
+
+        average, _, _, overall_attendance = analyze_performance(
+            results,
+            attendance_results
+        )
+
+        if average >= 85 and overall_attendance >= 85:
+            status = "Excellent"
+
+        elif average >= 70 and overall_attendance >= 75:
+            status = "Good"
+
+        elif average >= 50 and overall_attendance >= 65:
+            status = "Average"
+
+        else:
+            status = "Needs Attention"
+
+        return (
+            f"Your current performance is {status}.\n"
+            f"Average mark: {average:.2f}\n"
+            f"Overall attendance: {overall_attendance:.2f}%"
+        )
+
+
+        # ==========================================
+    # RECOMMENDATION
+    # ==========================================
+
+    elif intent == "recommendation":
+
+        average, _, _, overall_attendance = analyze_performance(
+            results,
+            attendance_results
+        )
+
+        lowest_subject, lowest_mark = min(
+            results,
+            key=lambda item: float(item[1])
+        )
+
+        return (
+            f"Based on your current performance, "
+            f"you should focus on {lowest_subject} "
+            f"({float(lowest_mark):.2f} marks).\n"
+            f"Your average mark is {average:.2f} and "
+            f"your attendance is {overall_attendance:.2f}%.\n"
+            f"Keep maintaining your attendance and "
+            f"give extra attention to your weaker subject."
+        )
+
+        # ==========================================
+    # RISK
+    # ==========================================
+
+    elif intent == "risk":
+
+        average, _, _, overall_attendance = analyze_performance(
+            results,
+            attendance_results
+        )
+
+        if average < 50 or overall_attendance < 65:
+            risk_level = "High"
+        elif average < 70 or overall_attendance < 75:
+            risk_level = "Moderate"
+        else:
+            risk_level = "Low"
+
+        return (
+            f"Your current academic risk level is {risk_level}.\n"
+            f"Average mark: {average:.2f}\n"
+            f"Overall attendance: {overall_attendance:.2f}%"
+        )
+
+
+    # ==========================================
     # UNKNOWN
     # ==========================================
 
     return (
         "I'm not sure what you're asking. "
         "Try asking about your marks, average, "
-        "attendance, highest subject, "
-        "lowest subject, performance, "
-        "risk, recommendation, or trend."
+        "attendance, highest subject, lowest subject, "
+        "performance, risk, recommendation, or trend."
     )

@@ -1,0 +1,287 @@
+text,intent
+what is my average,average
+what is my average mark,average
+tell me my average,average
+how much did i score on average,average
+what is my overall average,average
+how am i doing academically,average
+what is my attendance,attendance
+how much attendance do i have,attendance
+tell me my attendance percentage,attendance
+what percentage of classes did i attend,attendance
+am i maintaining good attendance,attendance
+show my attendance,attendance
+which subject is my best,highest_subject
+which is my highest scoring subject,highest_subject
+what is my strongest subject,highest_subject
+which subject did i score highest in,highest_subject
+which subject has the highest marks,highest_subject
+where did i perform the best,highest_subject
+which subject is my weakest,lowest_subject
+which subject has my lowest marks,lowest_subject
+what is my lowest scoring subject,lowest_subject
+which subject should i improve,lowest_subject
+where am i performing poorly,lowest_subject
+what is my weakest subject,lowest_subject
+am i improving,trend
+how is my performance changing,trend
+am i getting better,trend
+show my performance trend,trend
+how have my marks changed,trend
+compare my internal marks,trend
+am i at risk,risk
+do i need attention,risk
+what is my risk level,risk
+how much risk do i have,risk
+should i be worried about my performance,risk
+do i need academic attention,risk
+what should i improve,recommendation
+give me a recommendation,recommendation
+what do you suggest,recommendation
+how can i improve,recommendation
+what should i focus on,recommendation
+give me some advice,recommendation
+show my marks,marks
+what are my marks,marks
+show my scores,marks
+tell me my marks,marks
+what did i score,marks
+display my subject marks,marks
+how am i performing,performance
+how is my performance,performance
+tell me about my performance,performance
+give me my performance report,performance
+how am i doing,performance
+show my performance,performance
+bye,exit
+exit,exit
+quit,exit
+goodbye,exit
+stop,exit
+what is my average score,average
+what is my average percentage,average
+can you tell me my average,average
+tell me my overall average mark,average
+what marks did i get on average,average
+what is my average performance,average
+calculate my average mark,average
+how much is my average score,average
+what is my overall score,average
+show me my average marks,average
+how well did i score overall,average
+what is my overall academic average,average
+tell me how i performed on average,average
+what is the average of my marks,average
+what is my overall marks average,average
+what percentage of classes am i attending,attendance
+how regular am i in class,attendance
+how many classes have i attended,attendance
+what is my attendance percentage,attendance
+tell me my overall attendance,attendance
+how is my attendance,attendance
+am i attending classes regularly,attendance
+show my overall attendance percentage,attendance
+how many classes did i attend,attendance
+what percentage of attendance do i have,attendance
+is my attendance good,attendance
+do i have good attendance,attendance
+how often am i present in class,attendance
+tell me how regular my attendance is,attendance
+what is my attendance rate,attendance
+which subject did i score the most in,highest_subject
+which subject has my best score,highest_subject
+what is my top performing subject,highest_subject
+which subject do i perform best in,highest_subject
+where are my highest marks,highest_subject
+which subject has the best marks,highest_subject
+tell me my best performing subject,highest_subject
+what is my strongest subject in terms of marks,highest_subject
+which subject should i consider my strongest,highest_subject
+which subject did i do the best in,highest_subject
+where did i get my highest score,highest_subject
+which subject has the maximum marks,highest_subject
+what is my top subject,highest_subject
+which subject am i strongest at,highest_subject
+tell me which subject i scored highest in,highest_subject
+which subject did i score the least in,lowest_subject
+which subject has my worst score,lowest_subject
+what is my weakest performing subject,lowest_subject
+which subject do i perform worst in,lowest_subject
+where are my lowest marks,lowest_subject
+which subject has the least marks,lowest_subject
+tell me my weakest subject,lowest_subject
+what subject do i need to work on,lowest_subject
+which subject needs the most improvement,lowest_subject
+where did i get my lowest score,lowest_subject
+which subject has the minimum marks,lowest_subject
+what is my worst performing subject,lowest_subject
+which subject should i focus on improving,lowest_subject
+which subject am i struggling with,lowest_subject
+tell me where my performance is weakest,lowest_subject
+how is my performance changing over time,trend
+am i doing better than before,trend
+have my marks improved,trend
+have my scores gone up,trend
+is my performance improving over time,trend
+did i improve in my latest exam,trend
+how have i progressed,trend
+has my academic performance improved,trend
+am i performing better now,trend
+compare my recent and previous performance,trend
+has my score improved from the last exam,trend
+am i getting better at my subjects,trend
+how has my performance changed,trend
+is there an improvement in my marks,trend
+show me how my marks are changing,trend
+could i be at risk academically,risk
+is my performance putting me at risk,risk
+do my marks indicate any risk,risk
+should i be concerned about my performance,risk
+am i in the danger zone,risk
+is there anything concerning about my results,risk
+do i require academic attention,risk
+does my performance need attention,risk
+is my academic performance risky,risk
+should i be worried about my marks,risk
+how serious is my current performance,risk
+is my current performance a concern,risk
+do my marks suggest that i am at risk,risk
+am i doing badly enough to need attention,risk
+tell me if my performance is concerning,risk
+what can i do to improve my performance,recommendation
+which areas should i work on,recommendation
+where should i improve,recommendation
+what changes should i make,recommendation
+how can i improve my academic performance,recommendation
+what areas need my attention,recommendation
+what should i focus more on,recommendation
+which subjects need more attention,recommendation
+what can i do to get better marks,recommendation
+how can i perform better,recommendation
+what advice do you have for me,recommendation
+what should i work harder on,recommendation
+tell me how i can improve,recommendation
+what areas should i concentrate on,recommendation
+give me advice about my studies,recommendation
+show me all my subject scores,marks
+display my marks for each subject,marks
+what scores did i get in each subject,marks
+tell me my subject scores,marks
+can i see my marks,marks
+show my academic scores,marks
+what are my subject-wise marks,marks
+list my marks,marks
+give me my marks details,marks
+show me my exam scores,marks
+what did i score in each subject,marks
+can you show my scores,marks
+i want to see my marks,marks
+show me all my scores,marks
+how are my studies going,performance
+what do you think about my performance,performance
+how would you rate my performance,performance
+am i performing well,performance
+is my academic performance good,performance
+give me an overview of my performance,performance
+what is the status of my performance,performance
+tell me how i am doing in my studies,performance
+how good is my performance,performance
+what can you say about my academic performance,performance
+give me an analysis of my performance,performance
+how are my results overall,performance
+am i doing well academically,performance
+what does my performance look like,performance
+tell me about my academic progress,performance
+see you later,exit
+see you,exit
+i am done,exit
+i want to leave,exit
+close the assistant,exit
+end the conversation,exit
+that's all,exit
+nothing else,exit
+i'm finished,exit
+stop chatting,exit
+end,exit
+close,exit
+good night,exit
+talk to you later,exit
+have a good day,exit
+which subject has the lowest score,lowest_subject
+which subject did i score the lowest in,lowest_subject
+which subject is my weakest in terms of marks,lowest_subject
+which subject has my poorest score,lowest_subject
+which subject did i perform the worst in,lowest_subject
+which subject has the lowest marks,lowest_subject
+which subject is my weakest academically,lowest_subject
+which subject has the weakest result,lowest_subject
+tell me the subject where i scored the least,lowest_subject
+what should i do to improve my marks,recommendation
+how should i improve my weak subjects,recommendation
+what steps can i take to improve,recommendation
+what changes should i make to my study habits,recommendation
+how can i increase my scores,recommendation
+what should i do about my weak performance,recommendation
+give me steps to improve my academic performance,recommendation
+what can i do to perform better in my exams,recommendation
+how should i prepare to improve my marks,recommendation
+what actions should i take to improve,recommendation
+how did my marks change between exams,trend
+did my marks increase from the previous exam,trend
+did i score better in the latest exam,trend
+how has my score changed over time,trend
+compare my current marks with my previous marks,trend
+did my performance improve from internal 1 to internal 2,trend
+am i improving compared with my previous exam,trend
+what changed in my marks between exams,trend
+has my performance gone up or down,trend
+show whether my marks are improving or declining,trend
+i want to end this conversation,exit
+let's end this session,exit
+i am leaving now,exit
+stop the assistant,exit
+end our conversation,exit
+i don't have any more questions,exit
+i am done asking questions,exit
+that's all for now,exit
+close the chat,exit
+how am i doing in my studies,performance
+how good is my current performance,performance
+what is my current academic status,performance
+give me an overview of how i am doing,performance
+how would you describe my current performance,performance
+am i performing well in my studies,performance
+what is the current state of my performance,performance
+tell me how i am doing overall,performance
+give me an assessment of my current performance,performance
+how strong is my overall academic performance,performance
+how did my marks change between internal exams,trend
+did i perform better in my second internal,trend
+has my performance improved since my previous exam,trend
+compare my first and second internal marks,trend
+did my scores increase in the latest exam,trend
+how much have my marks changed since the last exam,trend
+am i improving compared with my previous results,trend
+did my academic performance get better over time,trend
+has my performance improved compared with my earlier exams,trend
+show my current performance,performance
+tell me my current performance,performance
+what is my current performance,performance
+give me my current performance,performance
+how is my academic performance,performance
+tell me about my current performance,performance
+how would you describe my performance,performance
+what is my performance status,performance
+has my performance improved,trend
+did my performance change over time,trend
+how did my performance change from before,trend
+is my performance concerning,risk
+should i be concerned about my results,risk
+does my performance indicate risk,risk
+is there any risk in my academic performance,risk
+should i worry about my academic performance,risk
+which subject has my maximum score,highest_subject
+where did i get my highest marks,highest_subject
+which subject has my best result,highest_subject
+which subject did i score the most marks in,highest_subject
+which subject has my greatest score,highest_subject

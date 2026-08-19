@@ -22,13 +22,13 @@ from sklearn.metrics import (
 # ==========================================
 # LOAD DATASET
 # ==========================================
-
 dataset_path = os.path.join(
     os.path.dirname(__file__),
-    "intent_dataset.csv"
+    "intent_dataset_v2.csv"
 )
 
 data = pd.read_csv(dataset_path)
+
 
 print("Dataset loaded successfully!")
 print(f"Total samples: {len(data)}")
@@ -91,6 +91,31 @@ model.fit(X_train, y_train)
 # ==========================================
 
 y_pred = model.predict(X_test)
+
+
+# ==========================================
+# SHOW MISCLASSIFIED QUESTIONS
+# ==========================================
+
+results = pd.DataFrame({
+    "text": X_test,
+    "actual": y_test,
+    "predicted": y_pred
+})
+
+mistakes = results[
+    results["actual"] != results["predicted"]
+]
+
+print("\nMisclassified Questions:")
+
+if len(mistakes) == 0:
+    print("No misclassified questions!")
+
+else:
+    print(
+        mistakes.to_string(index=False)
+    )
 
 
 # ==========================================

@@ -3,7 +3,8 @@ from services.attendance_service import get_student_attendance
 from services.student_service import (
     get_student_marks,
     get_student_exam_marks,
-    get_student_id
+    get_student_id,
+    get_subject_mark
 )
 from services.trend_service import analyze_trend
 
@@ -11,7 +12,7 @@ from services.trend_service import analyze_trend
 def route_intent(intent, student_name, context=None):
 
     # ==========================================
-    # CREATE CONTEXT IF NOT PROVIDED
+    # CREATE CONTEXT
     # ==========================================
 
     if context is None:
@@ -19,7 +20,8 @@ def route_intent(intent, student_name, context=None):
         context = {
             "last_intent": None,
             "last_subject": None,
-            "follow_up": False
+            "follow_up": False,
+            "subject_query": False
         }
 
     # ==========================================
@@ -39,6 +41,78 @@ def route_intent(intent, student_name, context=None):
     attendance_results = get_student_attendance(student_id)
 
     exam_results = get_student_exam_marks(student_name)
+
+    # ==========================================
+    # SUBJECT-SPECIFIC QUERY
+    # ==========================================
+
+    if context.get("subject_query", False):
+
+        subject_name = context.get("requested_subject")
+
+        if subject_name:
+
+            subject, mark = get_subject_mark(
+                student_name,
+                subject_name
+            )
+
+            if subject is None:
+
+                return (
+                    f"I couldn't find a subject named "
+                    f"{subject_name}."
+                )
+
+            context["last_subject"] = subject
+
+            # ----------------------------------
+            # WHY?
+            # ----------------------------------
+
+            if context.get("follow_up", False):
+
+                lowest_subject, lowest_mark = min(
+                    results,
+                    key=lambda item: float(item[1])
+                )
+
+                highest_subject, highest_mark = max(
+                    results,
+                    key=lambda item: float(item[1])
+                )
+
+                if subject.lower() == highest_subject.lower():
+
+                    return (
+                        f"{subject} is your strongest subject "
+                        f"because it has your highest mark of "
+                        f"{float(mark):.2f}."
+                    )
+
+                elif subject.lower() == lowest_subject.lower():
+
+                    return (
+                        f"{subject} is your weakest subject "
+                        f"because it has your lowest mark of "
+                        f"{float(mark):.2f}."
+                    )
+
+                else:
+
+                    return (
+                        f"You scored {float(mark):.2f} in "
+                        f"{subject}."
+                    )
+
+            # ----------------------------------
+            # NORMAL SUBJECT QUERY
+            # ----------------------------------
+
+            return (
+                f"Your mark in {subject} is "
+                f"{float(mark):.2f}."
+            )
 
     # ==========================================
     # AVERAGE
@@ -73,7 +147,6 @@ def route_intent(intent, student_name, context=None):
             attendance_results
         )
 
-        # Attendance status
         if overall_attendance >= 85:
 
             status = "Yes, your attendance is good."
@@ -87,24 +160,15 @@ def route_intent(intent, student_name, context=None):
 
         else:
 
-            status = (
-                "Your attendance needs attention."
-            )
-
-        # --------------------------------------
-        # FOLLOW-UP
-        # --------------------------------------
+            status = "Your attendance needs attention."
 
         if context.get("follow_up", False):
 
             return (
-                f"Your attendance is {overall_attendance:.2f}%. "
+                f"Your attendance is "
+                f"{overall_attendance:.2f}%. "
                 f"{status}"
             )
-
-        # --------------------------------------
-        # NORMAL RESPONSE
-        # --------------------------------------
 
         return (
             f"Your overall attendance is "
@@ -140,12 +204,7 @@ def route_intent(intent, student_name, context=None):
             attendance_results
         )
 
-        # Store subject
         context["last_subject"] = highest_subject
-
-        # --------------------------------------
-        # FOLLOW-UP: WHY?
-        # --------------------------------------
 
         if context.get("follow_up", False):
 
@@ -174,12 +233,7 @@ def route_intent(intent, student_name, context=None):
 
         lowest_mark = float(lowest_mark)
 
-        # Store subject
         context["last_subject"] = lowest_subject
-
-        # --------------------------------------
-        # FOLLOW-UP: WHY?
-        # --------------------------------------
 
         if context.get("follow_up", False):
 
@@ -212,40 +266,31 @@ def route_intent(intent, student_name, context=None):
                 "to calculate your trend."
             )
 
-        # --------------------------------------
-        # FOLLOW-UP: WHY?
-        # --------------------------------------
-
         if context.get("follow_up", False):
 
             if average_improvement > 0:
 
                 return (
-                    f"Your performance is {overall_trend.lower()} "
-                    f"because your marks increased by an "
-                    f"average of {average_improvement:.2f} marks."
+                    f"Your performance is "
+                    f"{overall_trend.lower()} because your "
+                    f"marks increased by an average of "
+                    f"{average_improvement:.2f} marks."
                 )
 
             elif average_improvement < 0:
 
                 return (
-                    f"Your performance is {overall_trend.lower()} "
-                    f"because your marks decreased by an "
-                    f"average of "
+                    f"Your performance is "
+                    f"{overall_trend.lower()} because your "
+                    f"marks decreased by an average of "
                     f"{abs(average_improvement):.2f} marks."
                 )
 
-            else:
-
-                return (
-                    "Your performance has remained relatively "
-                    "stable because there has been no "
-                    "significant change in your marks."
-                )
-
-        # --------------------------------------
-        # NORMAL RESPONSE
-        # --------------------------------------
+            return (
+                "Your performance has remained relatively "
+                "stable because there has been no "
+                "significant change in your marks."
+            )
 
         response = (
             f"Your overall performance trend is "
@@ -295,10 +340,6 @@ def route_intent(intent, student_name, context=None):
 
             status = "Needs Attention"
 
-        # --------------------------------------
-        # FOLLOW-UP: WHY?
-        # --------------------------------------
-
         if context.get("follow_up", False):
 
             return (
@@ -326,6 +367,34 @@ def route_intent(intent, student_name, context=None):
             attendance_results
         )
 
+        # Use previously mentioned subject if available
+        if (
+            context.get("last_subject") is not None
+            and context.get("follow_up", False)
+        ):
+
+            lowest_subject = context["last_subject"]
+
+            subject_mark = None
+
+            for subject, mark in results:
+
+                if subject.lower() == lowest_subject.lower():
+
+                    subject_mark = float(mark)
+                    break
+
+            if subject_mark is not None:
+
+                return (
+                    f"To improve {lowest_subject}, "
+                    f"give extra attention to that subject, "
+                    f"practice more questions, and review "
+                    f"the topics where you are losing marks.\n"
+                    f"Your current mark in {lowest_subject} "
+                    f"is {subject_mark:.2f}."
+                )
+
         lowest_subject, lowest_mark = min(
             results,
             key=lambda item: float(item[1])
@@ -333,27 +402,7 @@ def route_intent(intent, student_name, context=None):
 
         lowest_mark = float(lowest_mark)
 
-        # Store weakest subject
         context["last_subject"] = lowest_subject
-
-        # --------------------------------------
-        # FOLLOW-UP: HOW CAN I IMPROVE IT?
-        # --------------------------------------
-
-        if context.get("follow_up", False):
-
-            return (
-                f"To improve {lowest_subject}, "
-                f"give extra attention to that subject, "
-                f"practice more questions, and review "
-                f"the topics where you are losing marks.\n"
-                f"Your current mark in {lowest_subject} "
-                f"is {lowest_mark:.2f}."
-            )
-
-        # --------------------------------------
-        # NORMAL RESPONSE
-        # --------------------------------------
 
         return (
             f"Based on your current performance, "
@@ -388,10 +437,6 @@ def route_intent(intent, student_name, context=None):
         else:
 
             risk_level = "Low"
-
-        # --------------------------------------
-        # FOLLOW-UP: WHY?
-        # --------------------------------------
 
         if context.get("follow_up", False):
 

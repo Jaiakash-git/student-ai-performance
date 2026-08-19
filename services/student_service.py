@@ -68,3 +68,22 @@ def get_student_exam_marks(student_name):
     connection.close()
 
     return results
+
+
+# ==========================================
+# GET MARK FOR A SPECIFIC SUBJECT
+# ==========================================
+
+def get_subject_mark(student_name, subject_name):
+
+    results = get_student_marks(student_name)
+
+    subject_name = subject_name.lower().strip()
+
+    for subject, mark in results:
+
+        if subject.lower().strip() == subject_name:
+
+            return subject, float(mark)
+
+    return None, None

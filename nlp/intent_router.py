@@ -10,11 +10,15 @@ from services.trend_service import analyze_trend
 
 def route_intent(intent, student_name, context=None):
 
-    # Create context if not provided
+    # ==========================================
+    # CREATE CONTEXT IF NOT PROVIDED
+    # ==========================================
+
     if context is None:
         context = {
             "last_intent": None,
-            "last_subject": None
+            "last_subject": None,
+            "follow_up": False
         }
 
     # ==========================================
@@ -35,7 +39,6 @@ def route_intent(intent, student_name, context=None):
 
     exam_results = get_student_exam_marks(student_name)
 
-
     # ==========================================
     # AVERAGE
     # ==========================================
@@ -49,7 +52,6 @@ def route_intent(intent, student_name, context=None):
 
         return f"Your average mark is {average:.2f}."
 
-
     # ==========================================
     # ATTENDANCE
     # ==========================================
@@ -61,11 +63,33 @@ def route_intent(intent, student_name, context=None):
             attendance_results
         )
 
+        # Attendance status
+        if overall_attendance >= 85:
+
+            status = "Yes, your attendance is good."
+
+        elif overall_attendance >= 75:
+
+            status = (
+                "Your attendance is acceptable, "
+                "but you should try to improve it."
+            )
+
+        else:
+
+            status = "Your attendance needs attention."
+
+        # Follow-up response
+        if context.get("follow_up", False):
+
+            return status
+
+        # Normal attendance response
         return (
             f"Your overall attendance is "
-            f"{overall_attendance:.2f}%."
+            f"{overall_attendance:.2f}%.\n"
+            f"{status}"
         )
-
 
     # ==========================================
     # MARKS
@@ -76,13 +100,13 @@ def route_intent(intent, student_name, context=None):
         response = "Here are your marks:\n"
 
         for subject, mark in results:
+
             response += (
                 f"{subject}: "
                 f"{float(mark):.2f}\n"
             )
 
         return response.strip()
-
 
     # ==========================================
     # HIGHEST SUBJECT
@@ -104,7 +128,6 @@ def route_intent(intent, student_name, context=None):
             f"{highest_mark:.2f} marks."
         )
 
-
     # ==========================================
     # LOWEST SUBJECT
     # ==========================================
@@ -125,7 +148,6 @@ def route_intent(intent, student_name, context=None):
             f"{float(lowest_mark):.2f} marks."
         )
 
-
     # ==========================================
     # TREND
     # ==========================================
@@ -137,6 +159,7 @@ def route_intent(intent, student_name, context=None):
         )
 
         if not trend:
+
             return (
                 "There is not enough exam data "
                 "to calculate your trend."
@@ -163,7 +186,6 @@ def route_intent(intent, student_name, context=None):
 
         return response
 
-
     # ==========================================
     # PERFORMANCE
     # ==========================================
@@ -176,15 +198,19 @@ def route_intent(intent, student_name, context=None):
         )
 
         if average >= 85 and overall_attendance >= 85:
+
             status = "Excellent"
 
         elif average >= 70 and overall_attendance >= 75:
+
             status = "Good"
 
         elif average >= 50 and overall_attendance >= 65:
+
             status = "Average"
 
         else:
+
             status = "Needs Attention"
 
         return (
@@ -193,8 +219,7 @@ def route_intent(intent, student_name, context=None):
             f"Overall attendance: {overall_attendance:.2f}%"
         )
 
-
-        # ==========================================
+    # ==========================================
     # RECOMMENDATION
     # ==========================================
 
@@ -210,6 +235,9 @@ def route_intent(intent, student_name, context=None):
             key=lambda item: float(item[1])
         )
 
+        # Store weakest subject
+        context["last_subject"] = lowest_subject
+
         return (
             f"Based on your current performance, "
             f"you should focus on {lowest_subject} "
@@ -220,7 +248,7 @@ def route_intent(intent, student_name, context=None):
             f"give extra attention to your weaker subject."
         )
 
-        # ==========================================
+    # ==========================================
     # RISK
     # ==========================================
 
@@ -232,10 +260,15 @@ def route_intent(intent, student_name, context=None):
         )
 
         if average < 50 or overall_attendance < 65:
+
             risk_level = "High"
+
         elif average < 70 or overall_attendance < 75:
+
             risk_level = "Moderate"
+
         else:
+
             risk_level = "Low"
 
         return (
@@ -243,7 +276,6 @@ def route_intent(intent, student_name, context=None):
             f"Average mark: {average:.2f}\n"
             f"Overall attendance: {overall_attendance:.2f}%"
         )
-
 
     # ==========================================
     # UNKNOWN

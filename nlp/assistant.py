@@ -1,31 +1,5 @@
 from nlp.intent_classifier import classify_intent
 from nlp.intent_router import route_intent
-from services.student_service import get_student_marks
-
-
-def find_subject_from_text(text, student_name):
-
-    results = get_student_marks(student_name)
-
-    text = text.lower()
-
-    # Sort by subject length so that
-    # longer names are checked first.
-    subjects = sorted(
-        results,
-        key=lambda item: len(item[0]),
-        reverse=True
-    )
-
-    for subject, _ in subjects:
-
-        subject_lower = subject.lower().strip()
-
-        if subject_lower in text:
-
-            return subject
-
-    return None
 
 
 def start_assistant(student_name):
@@ -59,18 +33,10 @@ def start_assistant(student_name):
     while True:
 
         user_input = input("\nYou: ")
-
         text = user_input.lower().strip()
 
         # ======================================
-        # EMPTY INPUT
-        # ======================================
-
-        if not text:
-            continue
-
-        # ======================================
-        # RESET FOLLOW-UP VALUES
+        # RESET FOLLOW-UP FLAGS
         # ======================================
 
         context["follow_up"] = False
@@ -78,134 +44,120 @@ def start_assistant(student_name):
         context["requested_subject"] = None
 
         # ======================================
-        # EXIT
+        # ANALYTICS DETECTION
         # ======================================
 
-        intent = classify_intent(user_input)
+        analytics_phrases = [
+            "complete analysis",
+            "academic analysis",
+            "academic report",
+            "detailed analysis",
+            "detailed report",
+            "overall analysis",
+            "overall report",
+            "analyze my performance",
+            "analyse my performance",
+            "analyze my academics",
+            "analyse my academics",
+            "give me an analysis",
+            "give me a report",
+            "full analysis",
+            "full report"
+        ]
 
-        if intent == "exit":
-
-            print(
-                "\nAI: Goodbye! Keep working hard. 👋"
-            )
-
-            break
-
-        # ======================================
-        # SUBJECT DETECTION
-        # ======================================
-
-        detected_subject = find_subject_from_text(
-            text,
-            student_name
-        )
-
-        # ======================================
-        # SUBJECT-SPECIFIC QUESTION
-        # ======================================
-
-        if detected_subject is not None:
-
-            subject_question_words = [
-                "what about",
-                "what is my",
-                "what is the",
-                "how did i do",
-                "how did i perform",
-                "how am i doing",
-                "is",
-                "why is",
-                "why",
-                "tell me about",
-                "show me"
-            ]
-
-            if any(
-                phrase in text
-                for phrase in subject_question_words
-            ):
-
-                context["subject_query"] = True
-                context["requested_subject"] = detected_subject
-
-                # ----------------------------------
-                # "why is BEEE weak?"
-                # ----------------------------------
-
-                if any(
-                    phrase in text
-                    for phrase in [
-                        "why is",
-                        "why"
-                    ]
-                ):
-
-                    context["follow_up"] = True
-
-                intent = "subject_query"
-
-        # ======================================
-        # WHY / HOW FOLLOW-UP
-        # ======================================
-
-        elif text in [
-            "why",
-            "why?",
-            "how",
-            "how?",
-            "explain",
-            "explain why",
-            "can you explain"
-        ]:
-
-            if context["last_intent"] is not None:
-
-                intent = context["last_intent"]
-                context["follow_up"] = True
-
-        # ======================================
-        # EXTENDED WHY QUESTIONS
-        # ======================================
-
-        elif any(
+        if any(
             phrase in text
-            for phrase in [
-                "why is that",
-                "why is it",
-                "why so",
-                "how so",
-                "can you explain that",
-                "what makes it"
+            for phrase in analytics_phrases
+        ):
+            intent = "analytics"
+
+        else:
+            intent = classify_intent(user_input)
+
+        # ======================================
+        # SUBJECT FOLLOW-UP
+        # ======================================
+
+        # --------------------------------------
+        # "How much?"
+        # --------------------------------------
+
+        if (
+            context["last_subject"] is not None
+            and text in [
+                "how much",
+                "how much?",
+                "how many marks",
+                "how many marks?",
+                "what mark",
+                "what mark?"
             ]
         ):
 
-            if context["last_intent"] is not None:
+            intent = "subject_detail"
+            context["follow_up"] = True
+            context["subject_query"] = True
+            context["requested_subject"] = (
+                context["last_subject"]
+            )
 
-                intent = context["last_intent"]
-                context["follow_up"] = True
+      # --------------------------------------
+# "Why?" / "Why is it weak?"
+# --------------------------------------
 
-        # ======================================
-        # HOW CAN I IMPROVE IT?
-        # ======================================
+        elif (
+    context["last_subject"] is not None
+    and context["last_intent"] in [
+        "highest_subject",
+        "lowest_subject"
+    ]
+    and text in [
+        "why",
+        "why?",
+        "why is it weak",
+        "why is it weak?",
+        "why is that weak",
+        "why is that weak?",
+        "why is it strong",
+        "why is it strong?",
+        "why is that strong",
+        "why is that strong?"
+    ]
+):
+
+          intent = context["last_intent"]
+          context["follow_up"] = True
+          context["subject_query"] = True
+          context["requested_subject"] = (
+          context["last_subject"]
+        )
+
+        # --------------------------------------
+        # "How did I improve in it?"
+        # --------------------------------------
 
         elif (
             context["last_subject"] is not None
             and any(
                 phrase in text
                 for phrase in [
-                    "how can i improve it",
-                    "how do i improve it",
-                    "how can i improve",
-                    "how should i improve it",
-                    "what can i do about it",
-                    "how do i get better at it",
-                    "how can i get better at it"
+                    "how did i improve in it",
+                    "how did i improve",
+                    "how much did i improve",
+                    "how has it improved",
+                    "how did it improve",
+                    "how is it improving",
+                    "how much has it improved"
                 ]
             )
         ):
 
-            intent = "recommendation"
+            intent = "subject_trend"
             context["follow_up"] = True
+            context["subject_query"] = True
+            context["requested_subject"] = (
+                context["last_subject"]
+            )
 
         # ======================================
         # HIGHEST → LOWEST
@@ -246,7 +198,44 @@ def start_assistant(student_name):
             intent = "highest_subject"
 
         # ======================================
-        # ATTENDANCE / PERFORMANCE FOLLOW-UP
+        # WHY FOLLOW-UP
+        # ======================================
+
+        elif (
+            context["last_intent"] in [
+                "highest_subject",
+                "lowest_subject",
+                "risk",
+                "trend",
+                "performance"
+            ]
+            and text in [
+                "why",
+                "why?",
+                "how",
+                "how?",
+                "why is that",
+                "why is that?",
+                "why is it",
+                "why is it?"
+            ]
+        ):
+
+            intent = context["last_intent"]
+            context["follow_up"] = True
+
+            if intent in [
+                "highest_subject",
+                "lowest_subject"
+            ]:
+
+                context["subject_query"] = True
+                context["requested_subject"] = (
+                    context["last_subject"]
+                )
+
+        # ======================================
+        # ATTENDANCE / STATUS FOLLOW-UP
         # ======================================
 
         elif (
@@ -273,10 +262,16 @@ def start_assistant(student_name):
             context["follow_up"] = True
 
         # ======================================
-        # UPDATE CONTEXT
+        # EXIT
         # ======================================
 
-        context["last_intent"] = intent
+        if intent == "exit":
+
+            print(
+                "\nAI: Goodbye! Keep working hard. 👋"
+            )
+
+            break
 
         # ======================================
         # ROUTE REQUEST
@@ -290,6 +285,12 @@ def start_assistant(student_name):
 
         print(f"\nAI: {response}")
 
+        # ======================================
+        # UPDATE CONTEXT
+        # ======================================
+
+        context["last_intent"] = intent
+
 
 # ==========================================
 # PROGRAM ENTRY POINT
@@ -302,3 +303,4 @@ if __name__ == "__main__":
     )
 
     start_assistant(student_name)
+

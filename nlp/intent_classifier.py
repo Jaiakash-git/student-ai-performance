@@ -1,5 +1,4 @@
 import os
-from pydoc import text
 import joblib
 
 
@@ -24,12 +23,10 @@ def classify_intent(user_input):
 
     text = user_input.lower().strip()
 
-
     # ======================================
-    # RULE-BASED INTENTS
+    # EXIT
     # ======================================
 
-    # Exit
     if text in [
         "bye",
         "goodbye",
@@ -43,29 +40,72 @@ def classify_intent(user_input):
         text.startswith("bye")
         and len(text) <= 10
     ):
+
         return "exit"
 
-    # Follow-up / short subject questions
-    if any(phrase in text for phrase in [
-    "what about the lowest",
-    "what about lowest",
-    "what is the lowest",
-    "which is the lowest",
-    "lowest one"
-]):
-       return "lowest_subject"
+    # ======================================
+    # RECOMMENDATION
+    # ======================================
 
-    if any(phrase in text for phrase in [
-    "what about the highest",
-    "what about highest",
-    "what is the highest",
-    "which is the highest",
-    "highest one"
-]):
-      return "highest_subject"
+    if any(
+        phrase in text
+        for phrase in [
+            "recommend",
+            "recommendation",
+            "what do you recommend",
+            "what should i do",
+            "what should i focus on",
+            "what can i improve",
+            "how can i improve",
+            "give me advice",
+            "give me a suggestion",
+            "suggestion",
+            "suggest",
+            "advice",
+            "improve"
+        ]
+    ):
 
+        return "recommendation"
 
-    # Highest / strongest subject
+    # ======================================
+    # LOWEST
+    # ======================================
+
+    if any(
+        phrase in text
+        for phrase in [
+            "what about the lowest",
+            "what about lowest",
+            "what is the lowest",
+            "which is the lowest",
+            "lowest one"
+        ]
+    ):
+
+        return "lowest_subject"
+
+    # ======================================
+    # HIGHEST
+    # ======================================
+
+    if any(
+        phrase in text
+        for phrase in [
+            "what about the highest",
+            "what about highest",
+            "what is the highest",
+            "which is the highest",
+            "highest one"
+        ]
+    ):
+
+        return "highest_subject"
+
+    # ======================================
+    # HIGHEST / STRONGEST SUBJECT
+    # ======================================
+
     if "subject" in text and (
         "highest" in text
         or "best" in text
@@ -73,109 +113,141 @@ def classify_intent(user_input):
         or "strongest" in text
         or "strong" in text
     ):
+
         return "highest_subject"
 
+    # ======================================
+    # LOWEST / WEAK SUBJECT
+    # ======================================
 
-    # Lowest / weak subject
     if "subject" in text and (
         "lowest" in text
         or "weak" in text
         or "weakest" in text
         or "worst" in text
     ):
+
         return "lowest_subject"
 
+    # ======================================
+    # ATTENDANCE
+    # ======================================
 
-    # Attendance
-    if any(word in text for word in [
-        "attendance",
-        "present",
-        "absent"
-    ]):
+    if any(
+        word in text
+        for word in [
+            "attendance",
+            "present",
+            "absent"
+        ]
+    ):
+
         return "attendance"
 
+    # ======================================
+    # AVERAGE
+    # ======================================
 
-    # Average
-    if any(word in text for word in [
-        "average",
-        "overall mark",
-        "overall marks"
-    ]):
+    if any(
+        word in text
+        for word in [
+            "average",
+            "overall mark",
+            "overall marks"
+        ]
+    ):
+
         return "average"
 
-     # Risk
-    if any(word in text for word in [
-        "risk",
-        "at risk",
-        "attention",
-        "danger"
-    ]):
+    # ======================================
+    # RISK
+    # ======================================
+
+    if any(
+        word in text
+        for word in [
+            "risk",
+            "at risk",
+            "danger"
+        ]
+    ):
+
         return "risk"
 
+    # ======================================
+    # TREND
+    # ======================================
 
-    # Recommendation
-    if any(word in text for word in [
-        "recommend",
-        "recommendation",
-        "suggestion",
-        "suggest",
-        "improve"
-    ]):
-        return "recommendation"
+    if any(
+        word in text
+        for word in [
+            "improving",
+            "trend",
+            "progress",
+            "getting better",
+            "getting worse",
+            "changed",
+            "change",
+            "compared to",
+            "compared with",
+            "previous",
+            "earlier",
+            "before",
+            "last exam",
+            "previous exam"
+        ]
+    ):
 
-    #trend
-    if any(word in text for word in [
-    "improving",
-    "trend",
-    "progress",
-    "getting better",
-    "getting worse",
-    "changed",
-    "change",
-    "compared to",
-    "compared with",
-    "previous",
-    "earlier",
-    "before",
-    "last exam",
-    "previous exam"
-    ]):
         return "trend"
 
+    # ======================================
+    # MARKS
+    # ======================================
 
-    # Marks
-    if any(word in text for word in [
-        "marks",
-        "mark",
-        "scores",
-        "score",
-        "results"
-    ]):
+    if any(
+        word in text
+        for word in [
+            "marks",
+            "mark",
+            "scores",
+            "score",
+            "results"
+        ]
+    ):
+
         return "marks"
 
+    # ======================================
+    # GENERAL PERFORMANCE
+    # ======================================
 
-    # General performance
-    if any(word in text for word in [
-        "performance",
-        "performing",
-        "doing"
-    ]):
+    if any(
+        word in text
+        for word in [
+            "performance",
+            "performing",
+            "doing"
+        ]
+    ):
+
         return "performance"
 
-
-   # ======================================
-   # ML FALLBACK WITH CONFIDENCE
-   # ======================================
+    # ======================================
+    # ML FALLBACK
+    # ======================================
 
     probabilities = model.predict_proba([text])[0]
 
     max_probability = max(probabilities)
 
-    prediction = model.classes_[probabilities.argmax()]
+    prediction = model.classes_[
+        probabilities.argmax()
+    ]
 
     CONFIDENCE_THRESHOLD = 0.55
 
     if max_probability >= CONFIDENCE_THRESHOLD:
-         return prediction
+
+        return prediction
 
     return "unknown"

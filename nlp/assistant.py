@@ -48,6 +48,7 @@ def start_assistant(student_name):
         # ======================================
 
         analytics_phrases = [
+
             "complete analysis",
             "academic analysis",
             "academic report",
@@ -69,9 +70,11 @@ def start_assistant(student_name):
             phrase in text
             for phrase in analytics_phrases
         ):
+
             intent = "analytics"
 
         else:
+
             intent = classify_intent(user_input)
 
         # ======================================
@@ -79,7 +82,7 @@ def start_assistant(student_name):
         # ======================================
 
         # --------------------------------------
-        # "How much?"
+        # HOW MUCH?
         # --------------------------------------
 
         if (
@@ -95,45 +98,49 @@ def start_assistant(student_name):
         ):
 
             intent = "subject_detail"
+
             context["follow_up"] = True
             context["subject_query"] = True
+
             context["requested_subject"] = (
                 context["last_subject"]
             )
 
-      # --------------------------------------
-# "Why?" / "Why is it weak?"
-# --------------------------------------
+        # --------------------------------------
+        # WHY SUBJECT?
+        # --------------------------------------
 
         elif (
-    context["last_subject"] is not None
-    and context["last_intent"] in [
-        "highest_subject",
-        "lowest_subject"
-    ]
-    and text in [
-        "why",
-        "why?",
-        "why is it weak",
-        "why is it weak?",
-        "why is that weak",
-        "why is that weak?",
-        "why is it strong",
-        "why is it strong?",
-        "why is that strong",
-        "why is that strong?"
-    ]
-):
+            context["last_subject"] is not None
+            and context["last_intent"] in [
+                "highest_subject",
+                "lowest_subject"
+            ]
+            and text in [
+                "why",
+                "why?",
+                "why is it weak",
+                "why is it weak?",
+                "why is that weak",
+                "why is that weak?",
+                "why is it strong",
+                "why is it strong?",
+                "why is that strong",
+                "why is that strong?"
+            ]
+        ):
 
-          intent = context["last_intent"]
-          context["follow_up"] = True
-          context["subject_query"] = True
-          context["requested_subject"] = (
-          context["last_subject"]
-        )
+            intent = context["last_intent"]
+
+            context["follow_up"] = True
+            context["subject_query"] = True
+
+            context["requested_subject"] = (
+                context["last_subject"]
+            )
 
         # --------------------------------------
-        # "How did I improve in it?"
+        # HOW DID I IMPROVE?
         # --------------------------------------
 
         elif (
@@ -153,8 +160,10 @@ def start_assistant(student_name):
         ):
 
             intent = "subject_trend"
+
             context["follow_up"] = True
             context["subject_query"] = True
+
             context["requested_subject"] = (
                 context["last_subject"]
             )
@@ -198,7 +207,7 @@ def start_assistant(student_name):
             intent = "highest_subject"
 
         # ======================================
-        # WHY FOLLOW-UP
+        # GENERAL WHY FOLLOW-UP
         # ======================================
 
         elif (
@@ -207,7 +216,9 @@ def start_assistant(student_name):
                 "lowest_subject",
                 "risk",
                 "trend",
-                "performance"
+                "performance",
+                "average",
+                "recommendation"
             ]
             and text in [
                 "why",
@@ -222,6 +233,7 @@ def start_assistant(student_name):
         ):
 
             intent = context["last_intent"]
+
             context["follow_up"] = True
 
             if intent in [
@@ -230,6 +242,7 @@ def start_assistant(student_name):
             ]:
 
                 context["subject_query"] = True
+
                 context["requested_subject"] = (
                     context["last_subject"]
                 )
@@ -303,4 +316,3 @@ if __name__ == "__main__":
     )
 
     start_assistant(student_name)
-

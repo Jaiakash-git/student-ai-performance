@@ -17,7 +17,6 @@ def route_intent(intent, student_name, context=None):
     # ==========================================
 
     if context is None:
-
         context = {
             "last_intent": None,
             "last_subject": None,
@@ -50,22 +49,19 @@ def route_intent(intent, student_name, context=None):
 
     if context.get("subject_query", False):
 
-        subject_name = context.get(
-            "requested_subject"
-        )
+        requested_subject = context.get("requested_subject")
 
-        if subject_name:
+        if requested_subject:
 
             subject, mark = get_subject_mark(
                 student_name,
-                subject_name
+                requested_subject
             )
 
             if subject is None:
-
                 return (
                     f"I couldn't find a subject named "
-                    f"{subject_name}."
+                    f"{requested_subject}."
                 )
 
             mark = float(mark)
@@ -105,10 +101,7 @@ def route_intent(intent, student_name, context=None):
                     key=lambda item: float(item[1])
                 )
 
-                if (
-                    subject.lower()
-                    == highest_subject.lower()
-                ):
+                if subject.lower() == highest_subject.lower():
 
                     return (
                         f"{subject} is your strongest subject "
@@ -116,10 +109,7 @@ def route_intent(intent, student_name, context=None):
                         f"{float(highest_mark):.2f}."
                     )
 
-                elif (
-                    subject.lower()
-                    == lowest_subject.lower()
-                ):
+                elif subject.lower() == lowest_subject.lower():
 
                     return (
                         f"{subject} is your weakest subject "
@@ -150,7 +140,6 @@ def route_intent(intent, student_name, context=None):
                         exam_subject.lower()
                         == subject.lower()
                     ):
-
                         subject_exams.append(
                             float(exam_mark)
                         )
@@ -166,9 +155,7 @@ def route_intent(intent, student_name, context=None):
                 first_mark = subject_exams[0]
                 latest_mark = subject_exams[-1]
 
-                improvement = (
-                    latest_mark - first_mark
-                )
+                improvement = latest_mark - first_mark
 
                 if improvement > 0:
 
@@ -208,8 +195,8 @@ def route_intent(intent, student_name, context=None):
 
             return (
                 f"Your average mark is {average:.2f}. "
-                f"This represents your overall "
-                f"academic score."
+                f"It represents your overall academic "
+                f"performance across your subjects."
             )
 
         return (
@@ -223,18 +210,14 @@ def route_intent(intent, student_name, context=None):
 
     elif intent == "attendance":
 
-        _, _, _, overall_attendance = (
-            analyze_performance(
-                results,
-                attendance_results
-            )
+        _, _, _, overall_attendance = analyze_performance(
+            results,
+            attendance_results
         )
 
         if overall_attendance >= 85:
 
-            status = (
-                "Yes, your attendance is good."
-            )
+            status = "Yes, your attendance is good."
 
         elif overall_attendance >= 75:
 
@@ -461,41 +444,8 @@ def route_intent(intent, student_name, context=None):
         )
 
         # --------------------------------------
-        # Follow-up for previously mentioned
-        # subject
+        # FIND LOWEST SUBJECT
         # --------------------------------------
-
-        if (
-            context.get("last_subject") is not None
-            and context.get("follow_up", False)
-        ):
-
-            subject_name = context["last_subject"]
-
-            subject_mark = None
-
-            for subject, mark in results:
-
-                if (
-                    subject.lower()
-                    == subject_name.lower()
-                ):
-
-                    subject_mark = float(mark)
-                    break
-
-            if subject_mark is not None:
-
-                return (
-                    f"To improve {subject_name}, "
-                    f"give extra attention to that "
-                    f"subject, practice more questions, "
-                    f"and review the topics where you "
-                    f"are losing marks.\n"
-                    f"Your current mark in "
-                    f"{subject_name} is "
-                    f"{subject_mark:.2f}."
-                )
 
         lowest_subject, lowest_mark = min(
             results,
@@ -504,7 +454,28 @@ def route_intent(intent, student_name, context=None):
 
         lowest_mark = float(lowest_mark)
 
+        # --------------------------------------
+        # SAVE SUBJECT FOR FOLLOW-UP
+        # --------------------------------------
+
         context["last_subject"] = lowest_subject
+
+        # --------------------------------------
+        # FOLLOW-UP: "WHY?"
+        # --------------------------------------
+
+        if context.get("follow_up", False):
+
+            return (
+                f"I recommended focusing on "
+                f"{lowest_subject} because it has your "
+                f"lowest current mark of "
+                f"{lowest_mark:.2f}."
+            )
+
+        # --------------------------------------
+        # NORMAL RECOMMENDATION
+        # --------------------------------------
 
         return (
             f"Based on your current performance, "
@@ -573,7 +544,7 @@ def route_intent(intent, student_name, context=None):
         response += "\n"
 
         # --------------------------------------
-        # Improvement
+        # Subjects Needing Improvement
         # --------------------------------------
 
         if analysis["below_85"]:
@@ -692,9 +663,7 @@ def route_intent(intent, student_name, context=None):
 
         response += "Performance Factors:\n"
 
-        for factor in analysis[
-            "performance_factors"
-        ]:
+        for factor in analysis["performance_factors"]:
 
             response += (
                 f"- {factor}\n"

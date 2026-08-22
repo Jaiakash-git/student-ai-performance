@@ -260,3 +260,7 @@ else:
     # ==========================================
 
     print("\n============================================")
+
+    from nlp.assistant import start_assistant
+
+    start_assistant(student_name)

@@ -259,7 +259,7 @@ else:
     #          END OF REPORT
     # ==========================================
 
-    print("\n============================================")
+   
 
     from nlp.assistant import start_assistant
 

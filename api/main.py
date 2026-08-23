@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 
 from api.schemas import ChatRequest, ChatResponse
 from nlp.assistant import process_message
@@ -43,13 +43,20 @@ def health():
 )
 def chat(request: ChatRequest):
 
-    response, updated_context = process_message(
-        request.student_name,
-        request.message,
-        request.context
-    )
+    try:
+        response, updated_context = process_message(
+            request.student_name,
+            request.message,
+            request.context
+        )
 
-    return ChatResponse(
-        response=response,
-        context=updated_context
-    )
+        return ChatResponse(
+            response=response,
+            context=updated_context
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="An internal error occurred while processing your request."
+        )

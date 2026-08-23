@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
 
+from api.schemas import ChatRequest, ChatResponse
 from nlp.assistant import process_message
 
 
@@ -9,16 +9,6 @@ app = FastAPI(
     description="API for Student AI Assistant",
     version="1.0.0"
 )
-
-
-# ==========================================
-# REQUEST MODEL
-# ==========================================
-
-class ChatRequest(BaseModel):
-    student_name: str
-    message: str
-    context: dict | None = None
 
 
 # ==========================================
@@ -47,18 +37,19 @@ def health():
 # CHAT
 # ==========================================
 
-@app.post("/chat")
+@app.post(
+    "/chat",
+    response_model=ChatResponse
+)
 def chat(request: ChatRequest):
-
-    context = request.context
 
     response, updated_context = process_message(
         request.student_name,
         request.message,
-        context
+        request.context
     )
 
-    return {
-        "response": response,
-        "context": updated_context
-    }
+    return ChatResponse(
+        response=response,
+        context=updated_context
+    )

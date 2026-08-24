@@ -250,7 +250,7 @@ else:
     #          RECOMMENDATION
     # ==========================================
 
-    print("\n------------ RECOMMENDATION ---------------")
+    print("\n----------- RECOMMENDATION --------------")
 
     print(recommendation)
 

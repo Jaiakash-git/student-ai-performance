@@ -195,6 +195,7 @@ def process_message(student_name, user_input, context=None):
             "trend",
             "performance",
             "average",
+            "attendance",
             "recommendation"
         ]
         and text in [

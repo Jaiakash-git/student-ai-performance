@@ -4,7 +4,7 @@ what is my average mark,average
 tell me my average,average
 how much did i score on average,average
 what is my overall average,average
-how am i doing academically,average
+how am i doing academically,performance
 what is my attendance,attendance
 how much attendance do i have,attendance
 tell me my attendance percentage,attendance
@@ -285,3 +285,65 @@ where did i get my highest marks,highest_subject
 which subject has my best result,highest_subject
 which subject did i score the most marks in,highest_subject
 which subject has my greatest score,highest_subject
+what is my highest mark,highest_subject
+what is my highest score,highest_subject
+what is my maximum score,highest_subject
+what is my maximum mark,highest_subject
+what is my best score,highest_subject
+what is my best mark,highest_subject
+tell me my highest score,highest_subject
+tell me my highest mark,highest_subject
+which subject has my highest score,highest_subject
+which subject has my maximum score,highest_subject
+which subject has my best score,highest_subject
+which subject did i score the most marks in,highest_subject
+what is my top score,highest_subject
+where did i get my highest score,highest_subject
+what is my lowest mark,lowest_subject
+what is my lowest score,lowest_subject
+what is my minimum score,lowest_subject
+what is my minimum mark,lowest_subject
+what is my worst mark,lowest_subject
+tell me my lowest score,lowest_subject
+tell me my lowest mark,lowest_subject
+which subject has my lowest score,lowest_subject
+which subject has my minimum score,lowest_subject
+which subject has my worst mark,lowest_subject
+what is my bottom score,lowest_subject
+what happened to my marks recently,trend
+what happened to my scores recently,trend
+how are my marks changing recently,trend
+are my marks getting better,trend
+are my scores getting better,trend
+have my marks gotten better,trend
+have my scores gotten better,trend
+what changed in my recent marks,trend
+how did my marks change recently,trend
+am i doing better recently,trend
+what is happening with my marks,trend
+are my marks improving recently,trend
+how good are my studies,performance
+how good am i doing in my studies,performance
+can you evaluate my studies,performance
+evaluate my studies,performance
+how well am i doing academically,performance
+how good am i academically,performance
+how would you rate my studies,performance
+what do you think about my studies,performance
+how are my studies going overall,performance
+can you assess my studies,performance
+where should i focus,recommendation
+what should i work on,recommendation
+what are my weak areas,recommendation
+which subject should i focus on,recommendation
+where am i weak,recommendation
+which subject requires more attention,recommendation
+what should i concentrate on,recommendation
+which area should i focus on,recommendation
+which areas need improvement,recommendation
+what should i pay attention to,recommendation
+where do i need to improve,recommendation
+which subject needs my attention,recommendation
+what should i focus on improving,recommendation
+what areas should i work on,recommendation
+what do i need to work on,recommendation

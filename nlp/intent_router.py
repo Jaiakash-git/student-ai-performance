@@ -40,7 +40,6 @@ def route_intent(intent, student_name, context=None):
         return "Student not found."
 
     attendance_results = get_student_attendance(student_id)
-
     exam_results = get_student_exam_marks(student_name)
 
     # ==========================================
@@ -68,9 +67,9 @@ def route_intent(intent, student_name, context=None):
 
             context["last_subject"] = subject
 
-            # ==================================
+            # ======================================
             # SUBJECT DETAIL
-            # ==================================
+            # ======================================
 
             if intent == "subject_detail":
 
@@ -79,9 +78,9 @@ def route_intent(intent, student_name, context=None):
                     f"{mark:.2f}."
                 )
 
-            # ==================================
+            # ======================================
             # WHY SUBJECT IS WEAK / STRONG
-            # ==================================
+            # ======================================
 
             if (
                 context.get("follow_up", False)
@@ -122,9 +121,9 @@ def route_intent(intent, student_name, context=None):
                     f"{subject}."
                 )
 
-            # ==================================
+            # ======================================
             # SUBJECT TREND
-            # ==================================
+            # ======================================
 
             if intent == "subject_trend":
 
@@ -140,6 +139,7 @@ def route_intent(intent, student_name, context=None):
                         exam_subject.lower()
                         == subject.lower()
                     ):
+
                         subject_exams.append(
                             float(exam_mark)
                         )
@@ -215,36 +215,69 @@ def route_intent(intent, student_name, context=None):
             attendance_results
         )
 
+        # --------------------------------------
+        # FOLLOW-UP: WHY?
+        # --------------------------------------
+
+        if context.get("follow_up", False):
+
+            if overall_attendance >= 85:
+
+                return (
+                    f"Your attendance is "
+                    f"{overall_attendance:.2f}%, "
+                    f"which is considered good because "
+                    f"it is above the 85% level."
+                )
+
+            elif overall_attendance >= 75:
+
+                return (
+                    f"Your attendance is "
+                    f"{overall_attendance:.2f}%, "
+                    f"which is acceptable because it is "
+                    f"above 75%, but it is still below "
+                    f"the 85% level. That is why I "
+                    f"recommended improving it."
+                )
+
+            else:
+
+                return (
+                    f"Your attendance is "
+                    f"{overall_attendance:.2f}%, "
+                    f"which needs attention because "
+                    f"it is below 75%."
+                )
+
+        # --------------------------------------
+        # NORMAL ATTENDANCE
+        # --------------------------------------
+
         if overall_attendance >= 85:
 
-            status = "Yes, your attendance is good."
+            return (
+                f"Your overall attendance is "
+                f"{overall_attendance:.2f}%.\n"
+                f"Your attendance is good."
+            )
 
         elif overall_attendance >= 75:
 
-            status = (
-                "Your attendance is acceptable, "
-                "but you should try to improve it."
+            return (
+                f"Your overall attendance is "
+                f"{overall_attendance:.2f}%.\n"
+                f"Your attendance is acceptable, "
+                f"but you should try to improve it."
             )
 
         else:
 
-            status = (
-                "Your attendance needs attention."
-            )
-
-        if context.get("follow_up", False):
-
             return (
-                f"Your attendance is "
-                f"{overall_attendance:.2f}%. "
-                f"{status}"
+                f"Your overall attendance is "
+                f"{overall_attendance:.2f}%.\n"
+                f"Your attendance needs attention."
             )
-
-        return (
-            f"Your overall attendance is "
-            f"{overall_attendance:.2f}%.\n"
-            f"{status}"
-        )
 
     # ==========================================
     # MARKS
@@ -461,7 +494,7 @@ def route_intent(intent, student_name, context=None):
         context["last_subject"] = lowest_subject
 
         # --------------------------------------
-        # FOLLOW-UP: "WHY?"
+        # FOLLOW-UP: WHY?
         # --------------------------------------
 
         if context.get("follow_up", False):
@@ -516,7 +549,7 @@ def route_intent(intent, student_name, context=None):
         )
 
         # --------------------------------------
-        # Overall
+        # OVERALL
         # --------------------------------------
 
         response += (
@@ -527,7 +560,7 @@ def route_intent(intent, student_name, context=None):
         )
 
         # --------------------------------------
-        # Subject Performance
+        # SUBJECT PERFORMANCE
         # --------------------------------------
 
         response += "Subject Performance:\n"
@@ -544,7 +577,7 @@ def route_intent(intent, student_name, context=None):
         response += "\n"
 
         # --------------------------------------
-        # Subjects Needing Improvement
+        # SUBJECTS NEEDING IMPROVEMENT
         # --------------------------------------
 
         if analysis["below_85"]:
@@ -572,7 +605,7 @@ def route_intent(intent, student_name, context=None):
             )
 
         # --------------------------------------
-        # Strong Subjects
+        # STRONG SUBJECTS
         # --------------------------------------
 
         if analysis["above_85"]:
@@ -591,7 +624,7 @@ def route_intent(intent, student_name, context=None):
             response += "\n"
 
         # --------------------------------------
-        # Most Improved
+        # MOST IMPROVED
         # --------------------------------------
 
         if analysis["most_improved"]:
@@ -612,7 +645,7 @@ def route_intent(intent, student_name, context=None):
             )
 
         # --------------------------------------
-        # Least Improved
+        # LEAST IMPROVED
         # --------------------------------------
 
         if analysis["least_improved"]:
@@ -633,7 +666,7 @@ def route_intent(intent, student_name, context=None):
             )
 
         # --------------------------------------
-        # Average Improvement
+        # AVERAGE IMPROVEMENT
         # --------------------------------------
 
         response += (
@@ -643,7 +676,7 @@ def route_intent(intent, student_name, context=None):
         )
 
         # --------------------------------------
-        # Priority Subject
+        # PRIORITY SUBJECT
         # --------------------------------------
 
         if analysis["priority_subject"]:
@@ -658,7 +691,7 @@ def route_intent(intent, student_name, context=None):
             )
 
         # --------------------------------------
-        # Performance Factors
+        # PERFORMANCE FACTORS
         # --------------------------------------
 
         response += "Performance Factors:\n"
@@ -701,6 +734,10 @@ def route_intent(intent, student_name, context=None):
         else:
 
             risk_level = "Low"
+
+        # --------------------------------------
+        # FOLLOW-UP
+        # --------------------------------------
 
         if context.get("follow_up", False):
 

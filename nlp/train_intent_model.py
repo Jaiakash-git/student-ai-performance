@@ -24,7 +24,7 @@ from sklearn.metrics import (
 # ==========================================
 dataset_path = os.path.join(
     os.path.dirname(__file__),
-    "intent_dataset_v2.csv"
+    "intent_dataset_v4.csv"
 )
 
 data = pd.read_csv(dataset_path)

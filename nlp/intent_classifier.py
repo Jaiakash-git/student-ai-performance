@@ -88,6 +88,9 @@ def classify_intent(user_input):
         "should i worry",
         "is my performance bad",
         "is my performance dangerous",
+        "should i be worried",
+        "is my performance concerning",
+        "is this concerning",
         "danger"
     ]
 
@@ -192,7 +195,25 @@ def classify_intent(user_input):
         "last exam",
         "recent marks",
         "recent scores",
-        "recent performance"
+        "recent performance",
+        "improving",
+        "trend",
+        "progress",
+        "getting better",
+        "getting worse",
+        "changed",
+        "change",
+        "how have my marks changed",
+        "how did my marks change",
+        "how are my marks changing",
+        "compared to",
+        "compared with",
+        "previous",
+        "earlier",
+        "before",
+        "last exam",
+        "previous exam",
+        "recently"
     ]
 
     if any(phrase in text for phrase in trend_phrases):
@@ -227,6 +248,11 @@ def classify_intent(user_input):
         "give me a suggestion",
         "suggestion",
         "suggest",
+        "improve",
+        "where should i focus",
+        "what are my weak areas",
+        "which subject needs more attention",
+        "which subject needs attention",
         "advice"
     ]
 
@@ -284,7 +310,12 @@ def classify_intent(user_input):
             "mark details",
             "score details",
             "results",
-            "exam marks"
+            "exam marks",
+            "marks",
+            "mark",
+            "scores",
+            "score",
+            "results"
         ]
     ):
         return "marks"
@@ -312,6 +343,12 @@ def classify_intent(user_input):
         "rate my studies",
         "rate my performance",
         "academic performance"
+        "doing well",
+        "how am i doing",
+        "how am i performing",
+        "how are my academics",
+        "am i doing well"
+
     ]
 
     if any(phrase in text for phrase in performance_phrases):

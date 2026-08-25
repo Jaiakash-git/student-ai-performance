@@ -54,6 +54,23 @@ def classify_intent(user_input):
         return "exit"
 
     # ======================================
+    # GREETING
+    # ======================================
+
+    if text in [
+        "hi",
+        "hii",
+        "hiii",
+        "hello",
+        "hey",
+        "heyy",
+        "good morning",
+        "good afternoon",
+        "good evening"
+    ]:
+        return "greeting"
+
+    # ======================================
     # RISK
     # ======================================
 

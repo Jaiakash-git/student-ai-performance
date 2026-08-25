@@ -42,6 +42,20 @@ def route_intent(intent, student_name, context=None):
     attendance_results = get_student_attendance(student_id)
     exam_results = get_student_exam_marks(student_name)
 
+
+    # ==========================================
+# GREETING
+# ==========================================
+
+    if intent == "greeting":
+     return (
+        f"Hello {student_name}! 👋\n"
+        "How can I help you today?\n"
+        "You can ask me about your marks, "
+        "average, attendance, performance, "
+        "risk, recommendation, or trend."
+    )
+
     # ==========================================
     # SUBJECT FOLLOW-UP
     # ==========================================

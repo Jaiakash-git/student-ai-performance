@@ -1,6 +1,5 @@
 import os
 import joblib
-
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -9,7 +8,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 # CONFIGURATION
 # ==========================================
 
-RAG_INDEX_PATH = os.path.join(
+MODEL_NAME = "all-MiniLM-L6-v2"
+
+DATA_PATH = os.path.join(
     os.path.dirname(__file__),
     "data",
     "rag_index.pkl"
@@ -17,21 +18,12 @@ RAG_INDEX_PATH = os.path.join(
 
 
 # ==========================================
-# LOAD EMBEDDING MODEL
+# LOAD MODELS + RAG INDEX
 # ==========================================
 
-model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
+model = SentenceTransformer(MODEL_NAME)
 
-
-# ==========================================
-# LOAD RAG INDEX
-# ==========================================
-
-rag_index = joblib.load(
-    RAG_INDEX_PATH
-)
+rag_index = joblib.load(DATA_PATH)
 
 chunks = rag_index["chunks"]
 embeddings = rag_index["embeddings"]
@@ -41,20 +33,17 @@ embeddings = rag_index["embeddings"]
 # RETRIEVE RELEVANT CHUNKS
 # ==========================================
 
-def retrieve(query, top_k=2):
+def retrieve_chunks(question, top_k=2):
 
-    # Convert user question into embedding
-    query_embedding = model.encode(
-        [query]
+    question_embedding = model.encode(
+        [question]
     )
 
-    # Compare query with stored embeddings
     similarities = cosine_similarity(
-        query_embedding,
+        question_embedding,
         embeddings
     )[0]
 
-    # Get most relevant chunks
     top_indices = similarities.argsort()[
         ::-1
     ][:top_k]
@@ -74,48 +63,34 @@ def retrieve(query, top_k=2):
 
 
 # ==========================================
-# TEST RETRIEVER
+# TEST
 # ==========================================
 
 if __name__ == "__main__":
 
-    query = input(
-        "\nEnter your question: "
+    question = input(
+        "Enter your question: "
     )
 
-    results = retrieve(
-        query,
-        top_k=2
+    results = retrieve_chunks(
+        question
     )
 
-    print(
-        "\n================================"
-    )
-    print(
-        "RETRIEVED CHUNKS"
-    )
-    print(
-        "================================"
-    )
+    print("\n================================")
+    print("RETRIEVED CHUNKS")
+    print("================================")
 
-    for index, result in enumerate(
+    for i, result in enumerate(
         results,
         start=1
     ):
 
-        print(
-            f"\nResult {index}"
-        )
-
+        print(f"\nResult {i}")
         print(
             f"Similarity Score: "
             f"{result['score']:.4f}"
         )
 
-        print(
-            "--------------------------------"
-        )
+        print("--------------------------------")
 
-        print(
-            result["chunk"]
-        )
+        print(result["chunk"])

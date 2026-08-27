@@ -1,11 +1,9 @@
 from nlp.intent_classifier import classify_intent
 from nlp.intent_router import route_intent
 
-# ==========================================
-# RAG
-# ==========================================
-
 from rag.rag_pipeline import answer_question
+
+from agent.agent_core import run_agent
 
 
 # ==========================================
@@ -13,23 +11,6 @@ from rag.rag_pipeline import answer_question
 # ==========================================
 
 def is_general_question(text):
-    """
-    Detect questions that should be handled by RAG
-    instead of the personal student assistant.
-
-    Examples:
-        "What does an improving trend mean?"
-        "Is 80% attendance good?"
-        "What is an average mark of 90?"
-        "What is the capital of France?"
-
-    Personal questions such as:
-        "What is my average?"
-        "What is my attendance?"
-        "What is my lowest subject?"
-
-    should continue through the NLP pipeline.
-    """
 
     text = text.lower().strip()
 
@@ -46,7 +27,6 @@ def is_general_question(text):
         "me ",
         "mine",
         "myself",
-
         "how am i",
         "how are my",
         "how is my",
@@ -63,7 +43,7 @@ def is_general_question(text):
     ]
 
     # ------------------------------------------
-    # IF IT IS CLEARLY PERSONAL
+    # CLEARLY PERSONAL QUESTION
     # ------------------------------------------
 
     if any(
@@ -127,6 +107,160 @@ def is_general_question(text):
 
 
 # ==========================================
+# FORMAT AGENT RESPONSE
+# ==========================================
+
+def format_agent_response(agent_output):
+
+    tool = agent_output.get("tool")
+    result = agent_output.get("result", {})
+
+    # ------------------------------------------
+    # TOOL ERROR
+    # ------------------------------------------
+
+    if not result.get("success", False):
+
+        return result.get(
+            "message",
+            "I couldn't process that request."
+        )
+
+    # ------------------------------------------
+    # AVERAGE
+    # ------------------------------------------
+
+    if tool == "average":
+
+        return (
+            f"Your average mark is "
+            f"{result['average']:.2f}."
+        )
+
+    # ------------------------------------------
+    # ATTENDANCE
+    # ------------------------------------------
+
+    if tool == "attendance":
+
+        return (
+            f"Your overall attendance is "
+            f"{result['attendance']:.2f}%."
+        )
+
+    # ------------------------------------------
+    # HIGHEST SUBJECT
+    # ------------------------------------------
+
+    if tool == "highest_subject":
+
+        return (
+            f"{result['subject']} is your "
+            f"highest scoring subject with "
+            f"{result['mark']:.2f} marks."
+        )
+
+    # ------------------------------------------
+    # LOWEST SUBJECT
+    # ------------------------------------------
+
+    if tool == "lowest_subject":
+
+        return (
+            f"{result['subject']} is your "
+            f"lowest scoring subject with "
+            f"{result['mark']:.2f} marks."
+        )
+
+    # ------------------------------------------
+    # PERFORMANCE
+    # ------------------------------------------
+
+    if tool == "performance":
+
+        return (
+            f"Your performance status is "
+            f"{result['status']}.\n"
+            f"Average mark: {result['average']:.2f}\n"
+            f"Overall attendance: "
+            f"{result['attendance']:.2f}%."
+        )
+
+    # ------------------------------------------
+    # RISK
+    # ------------------------------------------
+
+    if tool == "risk":
+
+        return (
+            f"Your academic risk level is "
+            f"{result['risk_level']}.\n"
+            f"Risk probability: "
+            f"{result['risk_probability']:.2f}%.\n"
+            f"Average mark: "
+            f"{result['average']:.2f}\n"
+            f"Overall attendance: "
+            f"{result['attendance']:.2f}%."
+        )
+
+    # ------------------------------------------
+    # RECOMMENDATION
+    # ------------------------------------------
+
+    if tool == "recommendation":
+
+        return (
+            f"{result['recommendation']}\n"
+            f"Priority subject: "
+            f"{result['priority_subject']} "
+            f"({result['priority_mark']:.2f})"
+        )
+
+    # ------------------------------------------
+    # TREND
+    # ------------------------------------------
+
+    if tool == "trend":
+
+        response = (
+            f"Your overall performance trend is "
+            f"{result['overall_trend']}.\n\n"
+        )
+
+        for subject in result["subjects"]:
+
+            improvement = subject["improvement"]
+
+            if improvement > 0:
+                change = f"+{improvement:.2f}"
+            else:
+                change = f"{improvement:.2f}"
+
+            response += (
+                f"{subject['subject']}: "
+                f"{subject['first_mark']:.2f} → "
+                f"{subject['latest_mark']:.2f} "
+                f"({change})\n"
+            )
+
+        response += (
+            f"\nAverage improvement: "
+            f"{result['average_improvement']:+.2f}"
+        )
+
+        return response
+
+    # ------------------------------------------
+    # UNKNOWN TOOL
+    # ------------------------------------------
+
+    return (
+        "I couldn't determine how to present "
+        "the result."
+    )
+
+
+# ==========================================
 # PROCESS ONE MESSAGE
 # ==========================================
 
@@ -151,8 +285,6 @@ def process_message(
             "requested_subject": None
         }
 
-    # Make sure student name is available
-
     context["student_name"] = student_name
 
     text = user_input.lower().strip()
@@ -166,6 +298,26 @@ def process_message(
     context["requested_subject"] = None
 
     # ======================================
+    # EXIT
+    # ======================================
+
+    if text in [
+        "bye",
+        "exit",
+        "quit",
+        "byeeeee",
+        "goodbye"
+    ]:
+
+        response = (
+            "Goodbye! Keep working hard. 👋"
+        )
+
+        context["last_intent"] = "exit"
+
+        return response, context
+
+    # ======================================
     # RAG FOR GENERAL QUESTIONS
     # ======================================
 
@@ -175,31 +327,38 @@ def process_message(
             user_input
         )
 
-        # ----------------------------------
-        # If RAG has useful information,
-        # return it directly.
-        # ----------------------------------
-
-        if rag_answer != (
-            "I don't have enough information "
-            "to answer that."
-        ):
-
-            return rag_answer, context
-
-        # ----------------------------------
-        # If RAG does not know the answer,
-        # return the safe fallback.
-        # ----------------------------------
-
         return rag_answer, context
 
     # ======================================
-    # ANALYTICS DETECTION
+    # AGENTIC AI CORE
+    # ======================================
+
+    agent_output = run_agent(
+        student_name,
+        user_input
+    )
+
+    # --------------------------------------
+    # IF AGENT FOUND A TOOL
+    # --------------------------------------
+
+    if agent_output.get("tool") is not None:
+
+        response = format_agent_response(
+            agent_output
+        )
+
+        context["last_intent"] = (
+            agent_output["tool"]
+        )
+
+        return response, context
+
+    # ======================================
+    # EXISTING NLP PIPELINE
     # ======================================
 
     analytics_phrases = [
-
         "complete analysis",
         "academic analysis",
         "academic report",
@@ -234,10 +393,6 @@ def process_message(
     # SUBJECT FOLLOW-UP
     # ======================================
 
-    # --------------------------------------
-    # HOW MUCH?
-    # --------------------------------------
-
     if (
         context["last_subject"] is not None
         and text in [
@@ -254,14 +409,13 @@ def process_message(
 
         context["follow_up"] = True
         context["subject_query"] = True
-
         context["requested_subject"] = (
             context["last_subject"]
         )
 
-    # --------------------------------------
+    # ======================================
     # WHY SUBJECT?
-    # --------------------------------------
+    # ======================================
 
     elif (
         context["last_subject"] is not None
@@ -287,14 +441,13 @@ def process_message(
 
         context["follow_up"] = True
         context["subject_query"] = True
-
         context["requested_subject"] = (
             context["last_subject"]
         )
 
-    # --------------------------------------
+    # ======================================
     # HOW DID I IMPROVE?
-    # --------------------------------------
+    # ======================================
 
     elif (
         context["last_subject"] is not None
@@ -316,7 +469,6 @@ def process_message(
 
         context["follow_up"] = True
         context["subject_query"] = True
-
         context["requested_subject"] = (
             context["last_subject"]
         )
@@ -328,7 +480,6 @@ def process_message(
     elif (
         context["last_intent"]
         == "highest_subject"
-
         and any(
             word in text
             for word in [
@@ -349,7 +500,6 @@ def process_message(
     elif (
         context["last_intent"]
         == "lowest_subject"
-
         and any(
             word in text
             for word in [
@@ -379,7 +529,6 @@ def process_message(
             "attendance",
             "recommendation"
         ]
-
         and text in [
             "why",
             "why?",
@@ -402,7 +551,6 @@ def process_message(
         ]:
 
             context["subject_query"] = True
-
             context["requested_subject"] = (
                 context["last_subject"]
             )
@@ -419,7 +567,6 @@ def process_message(
             "performance",
             "risk"
         ]
-
         and any(
             phrase in text
             for phrase in [
@@ -436,20 +583,6 @@ def process_message(
         intent = context["last_intent"]
 
         context["follow_up"] = True
-
-    # ======================================
-    # EXIT
-    # ======================================
-
-    if intent == "exit":
-
-        response = (
-            "Goodbye! Keep working hard. 👋"
-        )
-
-        context["last_intent"] = intent
-
-        return response, context
 
     # ======================================
     # ROUTE REQUEST
@@ -514,17 +647,11 @@ def start_assistant(student_name):
     # ======================================
 
     context = {
-
         "student_name": student_name,
-
         "last_intent": None,
-
         "last_subject": None,
-
         "follow_up": False,
-
         "subject_query": False,
-
         "requested_subject": None
     }
 
@@ -539,11 +666,8 @@ def start_assistant(student_name):
         )
 
         response, context = process_message(
-
             student_name,
-
             user_input,
-
             context
         )
 
@@ -552,7 +676,6 @@ def start_assistant(student_name):
         )
 
         if context["last_intent"] == "exit":
-
             break
 
 

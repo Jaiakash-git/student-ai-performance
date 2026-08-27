@@ -18,9 +18,11 @@ model = joblib.load(MODEL_PATH)
 # ==========================================
 # CLASSIFY INTENT
 # ==========================================
+
 def classify_intent(user_input):
 
     text = user_input.lower().strip()
+
 
     # ======================================
     # EXIT
@@ -53,6 +55,7 @@ def classify_intent(user_input):
     if text.startswith("bye") and len(text) <= 10:
         return "exit"
 
+
     # ======================================
     # GREETING
     # ======================================
@@ -69,6 +72,144 @@ def classify_intent(user_input):
         "good evening"
     ]:
         return "greeting"
+
+
+    # ======================================
+    # GENERAL ACADEMIC QUESTION → RAG
+    # ======================================
+    #
+    # These questions ask about academic
+    # concepts/guidelines in general rather
+    # than asking about the student's own data.
+    #
+    # Examples:
+    #
+    # "Is 80% attendance good?"
+    # "Is 90% attendance good?"
+    # "What does an improving trend mean?"
+    # "What does an average mark of 90 mean?"
+    # "What factors affect academic risk?"
+    #
+    # These should go to RAG.
+    # ======================================
+
+    general_academic_phrases = [
+
+        # Attendance guidelines
+        "is attendance good",
+        "is attendance bad",
+        "is attendance okay",
+        "is attendance acceptable",
+        "what attendance is good",
+        "what attendance is considered good",
+        "what attendance is acceptable",
+        "what does attendance mean",
+        "what does attendance percentage mean",
+        "what does good attendance mean",
+
+        # Marks / performance guidelines
+        "what does an average mark mean",
+        "what does average mark mean",
+        "what does an average score mean",
+        "what does average score mean",
+        "what does a mark mean",
+        "what does a score mean",
+        "what does good academic performance mean",
+        "what does excellent academic performance mean",
+
+        # Trend concepts
+        "what does an improving trend mean",
+        "what does improving trend mean",
+        "what does a declining trend mean",
+        "what does declining trend mean",
+        "what does a stable trend mean",
+        "what does stable trend mean",
+        "what is an improving trend",
+        "what is a declining trend",
+        "what is a stable trend",
+
+        # Academic risk concepts
+        "what factors affect academic risk",
+        "what affects academic risk",
+        "what causes academic risk",
+        "what is academic risk",
+        "what does academic risk mean",
+
+        # Study / academic concepts
+        "how can students improve academic performance",
+        "how can i improve academic performance",
+        "what helps improve academic performance",
+        "what are study recommendations",
+        "what are academic recommendations"
+    ]
+
+    if any(
+        phrase in text
+        for phrase in general_academic_phrases
+    ):
+        return "rag"
+
+
+    # ======================================
+    # GENERAL NUMERICAL / GUIDELINE QUESTIONS
+    # ======================================
+    #
+    # Detect questions such as:
+    #
+    # "Is 80% attendance good?"
+    # "Is 90% attendance good?"
+    # "Is 70% attendance okay?"
+    #
+    # They contain a percentage but are NOT
+    # asking for the student's own attendance.
+    # ======================================
+
+    attendance_general_patterns = [
+
+        "attendance good",
+        "attendance bad",
+        "attendance okay",
+        "attendance acceptable",
+        "attendance enough",
+        "attendance sufficient",
+        "attendance considered",
+        "percentage attendance good",
+        "percentage attendance okay"
+    ]
+
+    if any(
+        phrase in text
+        for phrase in attendance_general_patterns
+    ):
+        return "rag"
+
+
+    # ======================================
+    # GENERAL MARK GUIDELINE QUESTIONS
+    # ======================================
+
+    mark_general_patterns = [
+
+        "mark good",
+        "mark bad",
+        "mark okay",
+        "mark acceptable",
+        "score good",
+        "score bad",
+        "score okay",
+        "score acceptable",
+        "average mark mean",
+        "average score mean",
+        "mark mean",
+        "score mean"
+    ]
+
+    if any(
+        phrase in text
+        for phrase in mark_general_patterns
+    ):
+        return "rag"
+
 
     # ======================================
     # RISK
@@ -94,12 +235,15 @@ def classify_intent(user_input):
         "danger"
     ]
 
-    if any(phrase in text for phrase in risk_phrases):
+    if any(
+        phrase in text
+        for phrase in risk_phrases
+    ):
         return "risk"
 
-    # Explicit risk words
     if "risk" in text:
         return "risk"
+
 
     # ======================================
     # HIGHEST SUBJECT
@@ -118,11 +262,11 @@ def classify_intent(user_input):
         "best subject",
         "highest subject",
         "which subject is my strongest",
-"which subject is strongest",
-"which is my strongest subject",
-"tell me my strongest subject",
-"what is my strongest subject",
-"my strongest subject"
+        "which subject is strongest",
+        "which is my strongest subject",
+        "tell me my strongest subject",
+        "what is my strongest subject",
+        "my strongest subject",
         "which subject is highest",
         "which subject has the highest",
         "which subject has my highest",
@@ -132,8 +276,12 @@ def classify_intent(user_input):
         "greatest mark"
     ]
 
-    if any(phrase in text for phrase in highest_phrases):
+    if any(
+        phrase in text
+        for phrase in highest_phrases
+    ):
         return "highest_subject"
+
 
     # ======================================
     # LOWEST SUBJECT
@@ -161,8 +309,12 @@ def classify_intent(user_input):
         "performance is weakest"
     ]
 
-    if any(phrase in text for phrase in lowest_phrases):
+    if any(
+        phrase in text
+        for phrase in lowest_phrases
+    ):
         return "lowest_subject"
+
 
     # ======================================
     # TREND
@@ -211,13 +363,15 @@ def classify_intent(user_input):
         "previous",
         "earlier",
         "before",
-        "last exam",
-        "previous exam",
         "recently"
     ]
 
-    if any(phrase in text for phrase in trend_phrases):
+    if any(
+        phrase in text
+        for phrase in trend_phrases
+    ):
         return "trend"
+
 
     # ======================================
     # RECOMMENDATION
@@ -256,8 +410,12 @@ def classify_intent(user_input):
         "advice"
     ]
 
-    if any(phrase in text for phrase in recommendation_phrases):
+    if any(
+        phrase in text
+        for phrase in recommendation_phrases
+    ):
         return "recommendation"
+
 
     # ======================================
     # ATTENDANCE
@@ -275,6 +433,7 @@ def classify_intent(user_input):
     ):
         return "attendance"
 
+
     # ======================================
     # AVERAGE
     # ======================================
@@ -290,6 +449,7 @@ def classify_intent(user_input):
         ]
     ):
         return "average"
+
 
     # ======================================
     # MARKS
@@ -314,11 +474,11 @@ def classify_intent(user_input):
             "marks",
             "mark",
             "scores",
-            "score",
-            "results"
+            "score"
         ]
     ):
         return "marks"
+
 
     # ======================================
     # PERFORMANCE
@@ -342,17 +502,19 @@ def classify_intent(user_input):
         "assess my performance",
         "rate my studies",
         "rate my performance",
-        "academic performance"
+        "academic performance",
         "doing well",
-        "how am i doing",
         "how am i performing",
         "how are my academics",
         "am i doing well"
-
     ]
 
-    if any(phrase in text for phrase in performance_phrases):
+    if any(
+        phrase in text
+        for phrase in performance_phrases
+    ):
         return "performance"
+
 
     # ======================================
     # ML FALLBACK

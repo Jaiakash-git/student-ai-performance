@@ -9,6 +9,12 @@ from services.student_service import (
 from services.trend_service import analyze_trend
 from services.analytics_service import generate_academic_analysis
 
+# ==========================================
+# RAG
+# ==========================================
+
+from rag.rag_pipeline import answer_question
+
 
 def route_intent(intent, student_name, context=None):
 
@@ -24,6 +30,41 @@ def route_intent(intent, student_name, context=None):
             "subject_query": False,
             "requested_subject": None
         }
+
+    # ==========================================
+    # RAG FALLBACK
+    # ==========================================
+    # If NLP cannot identify the question as one
+    # of the student-specific intents, send it
+    # to the RAG pipeline.
+    #
+    # Example:
+    # "What does an improving trend mean?"
+    # "Is 80% attendance considered good?"
+    # "What does academic risk mean?"
+    #
+    # RAG will retrieve relevant academic
+    # knowledge and generate the answer.
+    #
+    # If the retrieved information is not relevant,
+    # RAG itself returns:
+    #
+    # "I don't have enough information to answer that."
+
+    if intent == "unknown":
+
+        try:
+            answer, _ = answer_question(
+                context.get("user_input", "")
+            )
+
+            return answer
+
+        except Exception:
+            return (
+                "I don't have enough information "
+                "to answer that."
+            )
 
     # ==========================================
     # GET STUDENT DATA
@@ -42,19 +83,19 @@ def route_intent(intent, student_name, context=None):
     attendance_results = get_student_attendance(student_id)
     exam_results = get_student_exam_marks(student_name)
 
-
     # ==========================================
-# GREETING
-# ==========================================
+    # GREETING
+    # ==========================================
 
     if intent == "greeting":
-     return (
-        f"Hello {student_name}! 👋\n"
-        "How can I help you today?\n"
-        "You can ask me about your marks, "
-        "average, attendance, performance, "
-        "risk, recommendation, or trend."
-    )
+
+        return (
+            f"Hello {student_name}! 👋\n"
+            "How can I help you today?\n"
+            "You can ask me about your marks, "
+            "average, attendance, performance, "
+            "risk, recommendation, or trend."
+        )
 
     # ==========================================
     # SUBJECT FOLLOW-UP
@@ -62,7 +103,9 @@ def route_intent(intent, student_name, context=None):
 
     if context.get("subject_query", False):
 
-        requested_subject = context.get("requested_subject")
+        requested_subject = context.get(
+            "requested_subject"
+        )
 
         if requested_subject:
 
@@ -72,6 +115,7 @@ def route_intent(intent, student_name, context=None):
             )
 
             if subject is None:
+
                 return (
                     f"I couldn't find a subject named "
                     f"{requested_subject}."
@@ -114,19 +158,27 @@ def route_intent(intent, student_name, context=None):
                     key=lambda item: float(item[1])
                 )
 
-                if subject.lower() == highest_subject.lower():
+                if (
+                    subject.lower()
+                    == highest_subject.lower()
+                ):
 
                     return (
-                        f"{subject} is your strongest subject "
-                        f"because it has your highest mark of "
+                        f"{subject} is your strongest "
+                        f"subject because it has your "
+                        f"highest mark of "
                         f"{float(highest_mark):.2f}."
                     )
 
-                elif subject.lower() == lowest_subject.lower():
+                elif (
+                    subject.lower()
+                    == lowest_subject.lower()
+                ):
 
                     return (
-                        f"{subject} is your weakest subject "
-                        f"because it has your lowest mark of "
+                        f"{subject} is your weakest "
+                        f"subject because it has your "
+                        f"lowest mark of "
                         f"{float(lowest_mark):.2f}."
                     )
 
@@ -169,7 +221,9 @@ def route_intent(intent, student_name, context=None):
                 first_mark = subject_exams[0]
                 latest_mark = subject_exams[-1]
 
-                improvement = latest_mark - first_mark
+                improvement = (
+                    latest_mark - first_mark
+                )
 
                 if improvement > 0:
 
@@ -224,9 +278,11 @@ def route_intent(intent, student_name, context=None):
 
     elif intent == "attendance":
 
-        _, _, _, overall_attendance = analyze_performance(
-            results,
-            attendance_results
+        _, _, _, overall_attendance = (
+            analyze_performance(
+                results,
+                attendance_results
+            )
         )
 
         # --------------------------------------

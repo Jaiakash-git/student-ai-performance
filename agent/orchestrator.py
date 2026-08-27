@@ -1,75 +1,27 @@
-from agent.tools import (
-    get_average,
-    get_attendance,
-    get_highest_subject,
-    get_lowest_subject,
-    get_performance,
-    get_risk,
-    get_recommendation,
-    get_trend
-)
-
 from agent.planner import create_plan
+from agent.agent_core import execute_tool
+from agent.response_generator import generate_response
 
 
 # ==========================================
-# TOOL EXECUTOR
+# AGENT ORCHESTRATOR
 # ==========================================
 
-def execute_tool(
-    tool_name,
-    student_name
-):
-    """
-    Execute one tool based on the
-    tool name selected by the planner.
-    """
-
-    if tool_name == "average":
-        return get_average(student_name)
-
-    if tool_name == "attendance":
-        return get_attendance(student_name)
-
-    if tool_name == "highest_subject":
-        return get_highest_subject(student_name)
-
-    if tool_name == "lowest_subject":
-        return get_lowest_subject(student_name)
-
-    if tool_name == "performance":
-        return get_performance(student_name)
-
-    if tool_name == "risk":
-        return get_risk(student_name)
-
-    if tool_name == "recommendation":
-        return get_recommendation(student_name)
-
-    if tool_name == "trend":
-        return get_trend(student_name)
-
-    return {
-        "success": False,
-        "message": f"Unknown tool: {tool_name}"
-    }
-
-
-# ==========================================
-# AGENT CORE
-# ==========================================
-
-def run_agent(
+def run_orchestrator(
     student_name,
     user_input
 ):
     """
-    Plan and execute the tools required
-    to answer the user's question.
+    Complete agent workflow:
+
+    1. Understand the request
+    2. Create a tool plan
+    3. Execute required tools
+    4. Generate a natural-language response
     """
 
     # ======================================
-    # CREATE PLAN
+    # STEP 1: CREATE PLAN
     # ======================================
 
     plan = create_plan(user_input)
@@ -79,17 +31,23 @@ def run_agent(
     # ======================================
 
     if not plan:
+
         return {
             "success": False,
             "message": (
                 "I don't know which tool to use "
                 "for this question."
             ),
-            "plan": []
+            "plan": [],
+            "results": {},
+            "response": (
+                "I don't know which tool to use "
+                "for this question."
+            )
         }
 
     # ======================================
-    # EXECUTE TOOLS
+    # STEP 2: EXECUTE TOOLS
     # ======================================
 
     results = {}
@@ -104,13 +62,23 @@ def run_agent(
         results[tool_name] = result
 
     # ======================================
-    # RETURN AGENT RESULT
+    # STEP 3: GENERATE RESPONSE
+    # ======================================
+
+    response = generate_response(
+        plan,
+        results
+    )
+
+    # ======================================
+    # STEP 4: RETURN COMPLETE RESULT
     # ======================================
 
     return {
         "success": True,
         "plan": plan,
-        "results": results
+        "results": results,
+        "response": response
     }
 
 
@@ -125,24 +93,30 @@ if __name__ == "__main__":
     )
 
     test_questions = [
+
         "What is my average?",
+
         "What is my attendance?",
+
         "How am I performing and what should I improve?",
+
         "What is my risk and what should I improve?",
+
         "What is my highest subject and lowest subject?"
+
     ]
 
     print("\n========================================")
-    print("          AGENT CORE TEST")
+    print("       AGENT ORCHESTRATOR TEST")
     print("========================================")
 
     for question in test_questions:
 
-        print(
-            f"\nQuestion: {question}"
-        )
+        print("\n----------------------------------------")
+        print(f"Question: {question}")
+        print("----------------------------------------")
 
-        result = run_agent(
+        result = run_orchestrator(
             student_name,
             question
         )
@@ -150,14 +124,6 @@ if __name__ == "__main__":
         print("\nPlan:")
         print(result["plan"])
 
-        print("\nResults:")
+        print("\nFinal Response:")
+        print(result["response"])
 
-        for tool_name, tool_result in (
-            result["results"].items()
-        ):
-
-            print(
-                f"\n[{tool_name}]"
-            )
-
-            print(tool_result)

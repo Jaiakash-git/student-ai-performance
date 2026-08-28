@@ -7,10 +7,17 @@ from agent.tools import (
     get_risk,
     get_recommendation,
     get_trend,
+    get_subject_detail,
+    get_subject_trend,
     answer_academic_question
 )
 
 from agent.planner import create_plan
+
+from agent.memory import (
+    create_context,
+    update_context
+)
 
 
 # ==========================================
@@ -20,7 +27,8 @@ from agent.planner import create_plan
 def execute_tool(
     tool_name,
     student_name,
-    user_input=None
+    user_input=None,
+    context=None
 ):
     """
     Execute one tool based on the
@@ -28,7 +36,7 @@ def execute_tool(
     """
 
     # ======================================
-    # PERSONAL ANALYTICS TOOLS
+    # BASIC PERFORMANCE TOOLS
     # ======================================
 
     if tool_name == "average":
@@ -54,6 +62,62 @@ def execute_tool(
 
     if tool_name == "trend":
         return get_trend(student_name)
+
+    # ======================================
+    # SUBJECT DETAIL
+    # ======================================
+
+    if tool_name == "subject_detail":
+
+        if context is None:
+            return {
+                "success": False,
+                "message": "Context is missing."
+            }
+
+        subject = context.get("requested_subject")
+
+        if subject is None:
+            subject = context.get("last_subject")
+
+        if subject is None:
+            return {
+                "success": False,
+                "message": "I don't know which subject you are referring to."
+            }
+
+        return get_subject_detail(
+            student_name,
+            subject
+        )
+
+    # ======================================
+    # SUBJECT TREND
+    # ======================================
+
+    if tool_name == "subject_trend":
+
+        if context is None:
+            return {
+                "success": False,
+                "message": "Context is missing."
+            }
+
+        subject = context.get("requested_subject")
+
+        if subject is None:
+            subject = context.get("last_subject")
+
+        if subject is None:
+            return {
+                "success": False,
+                "message": "I don't know which subject you are referring to."
+            }
+
+        return get_subject_trend(
+            student_name,
+            subject
+        )
 
     # ======================================
     # RAG / ACADEMIC QUESTION
@@ -87,19 +151,32 @@ def execute_tool(
 
 def run_agent(
     student_name,
-    user_input
+    user_input,
+    context=None
 ):
     """
-    Plan and execute the tools required
-    to answer the user's question.
+    Plan, execute tools, and update
+    agent memory.
     """
+
+    # ======================================
+    # CREATE / RESTORE MEMORY
+    # ======================================
+
+    if context is None:
+        context = create_context(
+            student_name
+        )
+
+    context["student_name"] = student_name
 
     # ======================================
     # CREATE PLAN
     # ======================================
 
     plan = create_plan(
-        user_input
+        user_input,
+        context
     )
 
     # ======================================
@@ -114,7 +191,8 @@ def run_agent(
                 "for this question."
             ),
             "plan": [],
-            "results": {}
+            "results": {},
+            "context": context
         }
 
     # ======================================
@@ -128,10 +206,21 @@ def run_agent(
         result = execute_tool(
             tool_name,
             student_name,
-            user_input
+            user_input,
+            context
         )
 
         results[tool_name] = result
+
+        # ==================================
+        # UPDATE MEMORY
+        # ==================================
+
+        context = update_context(
+            context,
+            tool_name,
+            result
+        )
 
     # ======================================
     # RETURN AGENT RESULT
@@ -140,7 +229,8 @@ def run_agent(
     return {
         "success": True,
         "plan": plan,
-        "results": results
+        "results": results,
+        "context": context
     }
 
 
@@ -154,27 +244,43 @@ if __name__ == "__main__":
         "Enter student name: "
     )
 
+    # ======================================
+    # CREATE CONVERSATION MEMORY
+    # ======================================
+
+    context = create_context(
+        student_name
+    )
+
+    # ======================================
+    # TEST QUESTIONS
+    # ======================================
+
     test_questions = [
 
         "What is my average?",
 
-        "What is my attendance?",
+        "What is my lowest subject?",
 
-        "How am I performing and what should I improve?",
+        "What is my highest subject?",
 
-        "What is my risk and what should I improve?",
+        "How much?",
 
-        "What is my highest subject and lowest subject?",
+        "How did I improve?",
+
+        "What is my trend?",
+
+        "What is my risk?",
+
+        "What should I improve?",
 
         "What does an improving trend mean?",
 
-        "Is 80% attendance good?",
-
-        "What is academic performance?"
+        "Is 80% attendance good?"
     ]
 
     print("\n========================================")
-    print("       AGENT CORE TEST")
+    print("       AGENT MEMORY INTEGRATION TEST")
     print("========================================")
 
     for question in test_questions:
@@ -185,13 +291,20 @@ if __name__ == "__main__":
 
         result = run_agent(
             student_name,
-            question
+            question,
+            context
         )
 
+        # ==================================
+        # PRINT PLAN
+        # ==================================
+
         print("\nPlan:")
-        print(
-            result["plan"]
-        )
+        print(result["plan"])
+
+        # ==================================
+        # PRINT RESULTS
+        # ==================================
 
         print("\nResults:")
 
@@ -204,6 +317,13 @@ if __name__ == "__main__":
                 f"\n[{tool_name}]"
             )
 
-            print(
-                tool_result
-            )
+            print(tool_result)
+
+        # ==================================
+        # RESTORE UPDATED MEMORY
+        # ==================================
+
+        context = result["context"]
+
+        print("\nMemory:")
+        print(context)

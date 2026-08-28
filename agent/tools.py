@@ -207,6 +207,12 @@ def get_mark_for_subject(
     subject
 ):
 
+    if not subject:
+        return {
+            "success": False,
+            "message": "Subject name is required."
+        }
+
     result = get_subject_mark(
         student_name,
         subject
@@ -229,6 +235,121 @@ def get_mark_for_subject(
         "mark": round(
             float(mark),
             2
+        )
+    }
+
+
+# ==========================================
+# GET SUBJECT DETAIL
+# ==========================================
+
+def get_subject_detail(
+    student_name,
+    subject
+):
+
+    if not subject:
+        return {
+            "success": False,
+            "message": "Subject name is required."
+        }
+
+    result = get_subject_mark(
+        student_name,
+        subject
+    )
+
+    if result[0] is None:
+        return {
+            "success": False,
+            "message": (
+                f"I couldn't find a subject named "
+                f"{subject}."
+            )
+        }
+
+    found_subject, mark = result
+
+    return {
+        "success": True,
+        "subject": found_subject,
+        "mark": round(
+            float(mark),
+            2
+        )
+    }
+
+
+# ==========================================
+# GET SUBJECT TREND
+# ==========================================
+
+def get_subject_trend(
+    student_name,
+    subject
+):
+
+    if not subject:
+        return {
+            "success": False,
+            "message": "Subject name is required."
+        }
+
+    exam_results = get_student_exam_marks(
+        student_name
+    )
+
+    if not exam_results:
+        return {
+            "success": False,
+            "message": "No exam data found."
+        }
+
+    trend, _, _ = analyze_trend(
+        exam_results
+    )
+
+    if not trend:
+        return {
+            "success": False,
+            "message": (
+                "There is not enough exam data "
+                "to calculate the trend."
+            )
+        }
+
+    # Find the requested subject
+    for (
+        trend_subject,
+        first_mark,
+        latest_mark,
+        improvement
+    ) in trend:
+
+        if trend_subject.lower() == subject.lower():
+
+            return {
+                "success": True,
+                "subject": trend_subject,
+                "first_mark": round(
+                    float(first_mark),
+                    2
+                ),
+                "latest_mark": round(
+                    float(latest_mark),
+                    2
+                ),
+                "improvement": round(
+                    float(improvement),
+                    2
+                )
+            }
+
+    return {
+        "success": False,
+        "message": (
+            f"I couldn't find trend data for "
+            f"{subject}."
         )
     }
 
@@ -321,11 +442,14 @@ def get_risk(student_name):
             "message": "No marks found."
         }
 
-    average, highest_mark, _, overall_attendance = (
-        analyze_performance(
-            marks,
-            attendance
-        )
+    (
+        average,
+        highest_mark,
+        _,
+        overall_attendance
+    ) = analyze_performance(
+        marks,
+        attendance
     )
 
     lowest_mark = min(
@@ -389,10 +513,12 @@ def get_trend(student_name):
             "message": "No exam data found."
         }
 
-    trend, average_improvement, overall_trend = (
-        analyze_trend(
-            exam_results
-        )
+    (
+        trend,
+        average_improvement,
+        overall_trend
+    ) = analyze_trend(
+        exam_results
     )
 
     if not trend:
@@ -463,11 +589,14 @@ def get_recommendation(student_name):
             "message": "No marks found."
         }
 
-    average, highest_mark, highest_subject, overall_attendance = (
-        analyze_performance(
-            marks,
-            attendance
-        )
+    (
+        average,
+        highest_mark,
+        highest_subject,
+        overall_attendance
+    ) = analyze_performance(
+        marks,
+        attendance
     )
 
     lowest_subject, lowest_mark = min(
@@ -507,6 +636,12 @@ def get_recommendation(student_name):
 
 def answer_academic_question(question):
 
+    if not question:
+        return {
+            "success": False,
+            "message": "Academic question is missing."
+        }
+
     answer, results = answer_question(
         question
     )
@@ -516,3 +651,4 @@ def answer_academic_question(question):
         "answer": answer,
         "retrieved_results": results
     }
+

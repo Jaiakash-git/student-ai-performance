@@ -6,7 +6,8 @@ from agent.tools import (
     get_performance,
     get_risk,
     get_recommendation,
-    get_trend
+    get_trend,
+    answer_academic_question
 )
 
 from agent.planner import create_plan
@@ -18,12 +19,17 @@ from agent.planner import create_plan
 
 def execute_tool(
     tool_name,
-    student_name
+    student_name,
+    user_input=None
 ):
     """
     Execute one tool based on the
-    tool name selected by the planner.
+    tool selected by the planner.
     """
+
+    # ======================================
+    # PERSONAL ANALYTICS TOOLS
+    # ======================================
 
     if tool_name == "average":
         return get_average(student_name)
@@ -49,6 +55,26 @@ def execute_tool(
     if tool_name == "trend":
         return get_trend(student_name)
 
+    # ======================================
+    # RAG / ACADEMIC QUESTION
+    # ======================================
+
+    if tool_name == "academic_question":
+
+        if user_input is None:
+            return {
+                "success": False,
+                "message": "Academic question is missing."
+            }
+
+        return answer_academic_question(
+            user_input
+        )
+
+    # ======================================
+    # UNKNOWN TOOL
+    # ======================================
+
     return {
         "success": False,
         "message": f"Unknown tool: {tool_name}"
@@ -72,7 +98,9 @@ def run_agent(
     # CREATE PLAN
     # ======================================
 
-    plan = create_plan(user_input)
+    plan = create_plan(
+        user_input
+    )
 
     # ======================================
     # NO TOOL REQUIRED
@@ -85,7 +113,8 @@ def run_agent(
                 "I don't know which tool to use "
                 "for this question."
             ),
-            "plan": []
+            "plan": [],
+            "results": {}
         }
 
     # ======================================
@@ -98,7 +127,8 @@ def run_agent(
 
         result = execute_tool(
             tool_name,
-            student_name
+            student_name,
+            user_input
         )
 
         results[tool_name] = result
@@ -125,15 +155,26 @@ if __name__ == "__main__":
     )
 
     test_questions = [
+
         "What is my average?",
+
         "What is my attendance?",
+
         "How am I performing and what should I improve?",
+
         "What is my risk and what should I improve?",
-        "What is my highest subject and lowest subject?"
+
+        "What is my highest subject and lowest subject?",
+
+        "What does an improving trend mean?",
+
+        "Is 80% attendance good?",
+
+        "What is academic performance?"
     ]
 
     print("\n========================================")
-    print("          AGENT CORE TEST")
+    print("       AGENT CORE TEST")
     print("========================================")
 
     for question in test_questions:
@@ -148,16 +189,21 @@ if __name__ == "__main__":
         )
 
         print("\nPlan:")
-        print(result["plan"])
+        print(
+            result["plan"]
+        )
 
         print("\nResults:")
 
-        for tool_name, tool_result in (
-            result["results"].items()
-        ):
+        for (
+            tool_name,
+            tool_result
+        ) in result["results"].items():
 
             print(
                 f"\n[{tool_name}]"
             )
 
-            print(tool_result)
+            print(
+                tool_result
+            )

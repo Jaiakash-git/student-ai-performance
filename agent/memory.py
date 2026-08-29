@@ -11,9 +11,28 @@ def create_context(student_name):
 
     return {
         "student_name": student_name,
+
+        # Last detected intent/tool
         "last_intent": None,
+
+        # Last subject discussed
         "last_subject": None,
-        "last_result": None
+
+        # Subject explicitly requested by user
+        "requested_subject": None,
+
+        # Last tool result
+        "last_result": None,
+
+        # Previous tool result
+        "previous_result": None,
+
+        # Used to remember whether the
+        # last subject was highest or lowest
+        "last_subject_type": None,
+
+        # Last user question
+        "last_user_input": None
     }
 
 
@@ -24,24 +43,37 @@ def create_context(student_name):
 def update_context(
     context,
     intent,
-    result
+    result,
+    user_input=None
 ):
     """
     Update conversation memory after
     executing a tool.
     """
 
+    # --------------------------------------
+    # Store previous result
+    # --------------------------------------
+
+    context["previous_result"] = context.get(
+        "last_result"
+    )
+
+    # --------------------------------------
+    # Update latest information
+    # --------------------------------------
+
     context["last_intent"] = intent
     context["last_result"] = result
 
+    if user_input is not None:
+        context["last_user_input"] = user_input
+
     # --------------------------------------
-    # Remember subject
+    # Remember highest / lowest subject
     # --------------------------------------
 
-    if intent in [
-        "highest_subject",
-        "lowest_subject"
-    ]:
+    if intent == "highest_subject":
 
         if result.get("success"):
 
@@ -49,11 +81,23 @@ def update_context(
 
             if subject:
                 context["last_subject"] = subject
+                context["requested_subject"] = subject
+                context["last_subject_type"] = "highest"
+
+    elif intent == "lowest_subject":
+
+        if result.get("success"):
+
+            subject = result.get("subject")
+
+            if subject:
+                context["last_subject"] = subject
+                context["requested_subject"] = subject
+                context["last_subject_type"] = "lowest"
 
     # --------------------------------------
     # Subject detail
     # --------------------------------------
-    # Keep the remembered subject.
 
     elif intent == "subject_detail":
 
@@ -63,11 +107,11 @@ def update_context(
 
             if subject:
                 context["last_subject"] = subject
+                context["requested_subject"] = subject
 
     # --------------------------------------
     # Subject trend
     # --------------------------------------
-    # Keep the subject used for the trend.
 
     elif intent == "subject_trend":
 
@@ -77,6 +121,21 @@ def update_context(
 
             if subject:
                 context["last_subject"] = subject
+                context["requested_subject"] = subject
+
+    # --------------------------------------
+    # Subject explanation
+    # --------------------------------------
+
+    elif intent == "subject_explanation":
+
+        if result.get("success"):
+
+            subject = result.get("subject")
+
+            if subject:
+                context["last_subject"] = subject
+                context["requested_subject"] = subject
 
     return context
 
@@ -104,6 +163,30 @@ def get_last_intent(context):
 
 
 # ==========================================
+# GET REQUESTED SUBJECT
+# ==========================================
+
+def get_requested_subject(context):
+
+    return context.get(
+        "requested_subject"
+    )
+
+
+# ==========================================
+# CLEAR SUBJECT CONTEXT
+# ==========================================
+
+def clear_subject(context):
+
+    context["last_subject"] = None
+    context["requested_subject"] = None
+    context["last_subject_type"] = None
+
+    return context
+
+
+# ==========================================
 # TEST
 # ==========================================
 
@@ -120,6 +203,10 @@ if __name__ == "__main__":
     print("\nInitial Context:")
     print(context)
 
+    # --------------------------------------
+    # Lowest subject
+    # --------------------------------------
+
     result = {
         "success": True,
         "subject": "OS",
@@ -129,14 +216,15 @@ if __name__ == "__main__":
     context = update_context(
         context,
         "lowest_subject",
-        result
+        result,
+        "What is my lowest subject?"
     )
 
     print("\nAfter lowest_subject:")
     print(context)
 
     # --------------------------------------
-    # Simulate subject detail
+    # Subject detail
     # --------------------------------------
 
     result = {
@@ -148,10 +236,36 @@ if __name__ == "__main__":
     context = update_context(
         context,
         "subject_detail",
-        result
+        result,
+        "How much?"
     )
 
     print("\nAfter subject_detail:")
+    print(context)
+
+    # --------------------------------------
+    # Subject explanation
+    # --------------------------------------
+
+    result = {
+        "success": True,
+        "subject": "OS",
+        "mark": 82.0,
+        "explanation": (
+            "OS is your lowest-scoring subject "
+            "because its mark is the lowest among "
+            "your subjects."
+        )
+    }
+
+    context = update_context(
+        context,
+        "subject_explanation",
+        result,
+        "Why?"
+    )
+
+    print("\nAfter subject_explanation:")
     print(context)
 
     print(
@@ -160,6 +274,26 @@ if __name__ == "__main__":
     )
 
     print(
+        "Requested Subject:",
+        get_requested_subject(context)
+    )
+
+    print(
         "Last Intent:",
         get_last_intent(context)
     )
+
+    print(
+        "Last Result:",
+        context.get("last_result")
+    )
+
+    # --------------------------------------
+    # Clear subject
+    # --------------------------------------
+
+    context = clear_subject(context)
+
+    print("\nAfter clearing subject:")
+    print(context)
+

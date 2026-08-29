@@ -1,3 +1,7 @@
+# ==========================================
+# AGENT CORE
+# ==========================================
+
 from agent.tools import (
     get_average,
     get_attendance,
@@ -12,7 +16,9 @@ from agent.tools import (
     answer_academic_question
 )
 
-from agent.planner import create_plan
+from agent.planner import (
+    create_plan
+)
 
 from agent.memory import (
     create_context,
@@ -27,9 +33,6 @@ from agent.response_generator import (
 # ==========================================
 # TOOL EXECUTOR
 # ==========================================
-# Executes the tool selected by the planner.
-# ==========================================
-
 
 def execute_tool(
     tool_name,
@@ -38,8 +41,8 @@ def execute_tool(
     context=None
 ):
     """
-    Execute one tool based on the
-    tool selected by the planner.
+    Execute one tool based on the tool
+    selected by the planner.
     """
 
     # ======================================
@@ -47,28 +50,45 @@ def execute_tool(
     # ======================================
 
     if tool_name == "average":
-        return get_average(student_name)
+        return get_average(
+            student_name
+        )
 
     if tool_name == "attendance":
-        return get_attendance(student_name)
+        return get_attendance(
+            student_name
+        )
 
     if tool_name == "highest_subject":
-        return get_highest_subject(student_name)
+        return get_highest_subject(
+            student_name
+        )
 
     if tool_name == "lowest_subject":
-        return get_lowest_subject(student_name)
+        return get_lowest_subject(
+            student_name
+        )
 
     if tool_name == "performance":
-        return get_performance(student_name)
+        return get_performance(
+            student_name
+        )
 
     if tool_name == "risk":
-        return get_risk(student_name)
+        return get_risk(
+            student_name
+        )
 
     if tool_name == "recommendation":
-        return get_recommendation(student_name)
+        return get_recommendation(
+            student_name
+        )
 
     if tool_name == "trend":
-        return get_trend(student_name)
+        return get_trend(
+            student_name
+        )
+
 
     # ======================================
     # SUBJECT DETAIL
@@ -82,10 +102,14 @@ def execute_tool(
                 "message": "Context is missing."
             }
 
-        subject = context.get("requested_subject")
+        subject = context.get(
+            "requested_subject"
+        )
 
         if subject is None:
-            subject = context.get("last_subject")
+            subject = context.get(
+                "last_subject"
+            )
 
         if subject is None:
             return {
@@ -101,6 +125,7 @@ def execute_tool(
             subject
         )
 
+
     # ======================================
     # SUBJECT TREND
     # ======================================
@@ -113,10 +138,14 @@ def execute_tool(
                 "message": "Context is missing."
             }
 
-        subject = context.get("requested_subject")
+        subject = context.get(
+            "requested_subject"
+        )
 
         if subject is None:
-            subject = context.get("last_subject")
+            subject = context.get(
+                "last_subject"
+            )
 
         if subject is None:
             return {
@@ -132,6 +161,293 @@ def execute_tool(
             subject
         )
 
+
+    # ======================================
+    # SUBJECT EXPLANATION
+    # ======================================
+
+    if tool_name == "subject_explanation":
+
+        if context is None:
+            return {
+                "success": False,
+                "message": "Context is missing."
+            }
+
+        # ----------------------------------
+        # Find subject from memory
+        # ----------------------------------
+
+        subject = context.get(
+            "requested_subject"
+        )
+
+        if subject is None:
+            subject = context.get(
+                "last_subject"
+            )
+
+        if subject is None:
+            return {
+                "success": False,
+                "message": (
+                    "I don't know which subject "
+                    "you are referring to."
+                )
+            }
+
+        # ----------------------------------
+        # Previous conversation state
+        # ----------------------------------
+
+        last_subject_type = context.get(
+            "last_subject_type"
+        )
+
+        last_result = context.get(
+            "last_result"
+        )
+
+        previous_result = context.get(
+            "previous_result"
+        )
+
+        # ----------------------------------
+        # Find the most useful mark
+        # ----------------------------------
+
+        mark = None
+
+        if isinstance(
+            last_result,
+            dict
+        ):
+            mark = last_result.get(
+                "mark"
+            )
+
+        if mark is None:
+            if isinstance(
+                previous_result,
+                dict
+            ):
+                mark = previous_result.get(
+                    "mark"
+                )
+
+        # ----------------------------------
+        # IMPORTANT:
+        # Check the CURRENT USER QUESTION
+        # BEFORE highest/lowest explanation.
+        #
+        # This fixes:
+        # "Is that good?"
+        # "Is that bad?"
+        # ----------------------------------
+
+        user_text = (
+            user_input or ""
+        ).lower().strip()
+
+        is_good_question = any(
+            phrase in user_text
+            for phrase in [
+                "is that good",
+                "is it good",
+                "is that okay",
+                "is it okay"
+            ]
+        )
+
+        is_bad_question = any(
+            phrase in user_text
+            for phrase in [
+                "is that bad",
+                "is it bad"
+            ]
+        )
+
+        # ==================================
+        # GOOD / BAD EVALUATION
+        # ==================================
+
+        if (
+            is_good_question
+            or is_bad_question
+        ):
+
+            if mark is None:
+                return {
+                    "success": False,
+                    "message": (
+                        "I don't have the mark "
+                        "needed to evaluate it."
+                    )
+                }
+
+            # --------------------------------
+            # GOOD QUESTION
+            # --------------------------------
+
+            if is_good_question:
+
+                if mark >= 85:
+                    explanation = (
+                        f"Your {subject} mark is "
+                        f"{mark:.2f}. "
+                        f"Yes, that's a strong mark."
+                    )
+
+                elif mark >= 70:
+                    explanation = (
+                        f"Your {subject} mark is "
+                        f"{mark:.2f}. "
+                        f"Yes, that's a good mark."
+                    )
+
+                elif mark >= 50:
+                    explanation = (
+                        f"Your {subject} mark is "
+                        f"{mark:.2f}. "
+                        f"It's an average mark, "
+                        f"so there is room for "
+                        f"improvement."
+                    )
+
+                else:
+                    explanation = (
+                        f"Your {subject} mark is "
+                        f"{mark:.2f}. "
+                        f"It needs improvement."
+                    )
+
+            # --------------------------------
+            # BAD QUESTION
+            # --------------------------------
+
+            else:
+
+                if mark >= 85:
+                    bad_response = (
+                        "No, that's not a bad mark. "
+                        "It's a strong mark, though "
+                        "you can always improve."
+                    )
+
+                elif mark >= 70:
+                    bad_response = (
+                        "No, that's not a bad mark. "
+                        "It's a good mark, though "
+                        "there is still room to improve."
+                    )
+
+                elif mark >= 50:
+                    bad_response = (
+                        "It isn't a failing mark, "
+                        "but there is definitely "
+                        "room for improvement."
+                    )
+
+                else:
+                    bad_response = (
+                        "Yes, that mark needs "
+                        "improvement."
+                    )
+
+                explanation = (
+                    f"Your {subject} mark is "
+                    f"{mark:.2f}. "
+                    f"{bad_response}"
+                )
+
+            return {
+                "success": True,
+                "subject": subject,
+                "mark": mark,
+                "explanation": explanation,
+                "explanation_type": "evaluation"
+            }
+
+
+        # ==================================
+        # WHY AFTER LOWEST SUBJECT
+        # ==================================
+
+        if last_subject_type == "lowest":
+
+            if mark is not None:
+                explanation = (
+                    f"{subject} is your "
+                    f"lowest-scoring subject "
+                    f"because its mark of "
+                    f"{mark:.2f} is the lowest "
+                    f"among your subjects."
+                )
+
+            else:
+                explanation = (
+                    f"{subject} is your "
+                    f"lowest-scoring subject "
+                    f"because it has the lowest "
+                    f"mark among your subjects."
+                )
+
+            return {
+                "success": True,
+                "subject": subject,
+                "mark": mark,
+                "explanation": explanation,
+                "explanation_type": "lowest"
+            }
+
+
+        # ==================================
+        # WHY AFTER HIGHEST SUBJECT
+        # ==================================
+
+        if last_subject_type == "highest":
+
+            if mark is not None:
+                explanation = (
+                    f"{subject} is your "
+                    f"highest-scoring subject "
+                    f"because its mark of "
+                    f"{mark:.2f} is the highest "
+                    f"among your subjects."
+                )
+
+            else:
+                explanation = (
+                    f"{subject} is your "
+                    f"highest-scoring subject "
+                    f"because it has the highest "
+                    f"mark among your subjects."
+                )
+
+            return {
+                "success": True,
+                "subject": subject,
+                "mark": mark,
+                "explanation": explanation,
+                "explanation_type": "highest"
+            }
+
+
+        # ==================================
+        # GENERIC EXPLANATION
+        # ==================================
+
+        return {
+            "success": True,
+            "subject": subject,
+            "mark": mark,
+            "explanation": (
+                f"{subject} is the subject "
+                f"we were discussing."
+            )
+        }
+
+
     # ======================================
     # RAG / ACADEMIC QUESTION
     # ======================================
@@ -141,12 +457,61 @@ def execute_tool(
         if user_input is None:
             return {
                 "success": False,
-                "message": "Academic question is missing."
+                "message": (
+                    "Academic question is missing."
+                )
             }
 
         return answer_academic_question(
             user_input
         )
+
+
+    # ======================================
+    # GREETING
+    # ======================================
+
+    if tool_name == "greeting":
+
+        return {
+            "success": True,
+            "response": (
+                f"Hello {student_name}! 👋 "
+                "How can I help you with your "
+                "academics today?"
+            )
+        }
+
+
+    # ======================================
+    # THANKS
+    # ======================================
+
+    if tool_name == "thanks":
+
+        return {
+            "success": True,
+            "response": (
+                "You're welcome! 😊 "
+                "I'm here if you need help "
+                "with your academic performance."
+            )
+        }
+
+
+    # ======================================
+    # GOODBYE
+    # ======================================
+
+    if tool_name == "goodbye":
+
+        return {
+            "success": True,
+            "response": (
+                f"Goodbye, {student_name}! 👋"
+            )
+        }
+
 
     # ======================================
     # UNKNOWN TOOL
@@ -154,32 +519,15 @@ def execute_tool(
 
     return {
         "success": False,
-        "message": f"Unknown tool: {tool_name}"
+        "message": (
+            f"Unknown tool: {tool_name}"
+        )
     }
 
 
 # ==========================================
 # AGENT CORE
 # ==========================================
-# Complete agent flow:
-#
-# User Question
-#       ↓
-#     Planner
-#       ↓
-#      Plan
-#       ↓
-# Tool Executor
-#       ↓
-#     Results
-#       ↓
-# Memory Update
-#       ↓
-# Response Generator
-#       ↓
-# Natural Language Response
-# ==========================================
-
 
 def run_agent(
     student_name,
@@ -188,7 +536,7 @@ def run_agent(
 ):
     """
     Plan, execute tools, update memory,
-    and generate the final natural-language response.
+    and generate final response.
     """
 
     # ======================================
@@ -200,7 +548,10 @@ def run_agent(
             student_name
         )
 
-    context["student_name"] = student_name
+    context["student_name"] = (
+        student_name
+    )
+
 
     # ======================================
     # CREATE PLAN
@@ -211,11 +562,13 @@ def run_agent(
         context
     )
 
+
     # ======================================
     # NO TOOL REQUIRED
     # ======================================
 
     if not plan:
+
         response = (
             "I don't know which tool to use "
             "for this question."
@@ -229,6 +582,7 @@ def run_agent(
             "results": {},
             "context": context
         }
+
 
     # ======================================
     # EXECUTE TOOLS
@@ -259,27 +613,32 @@ def run_agent(
 
         results[tool_name] = result
 
-        # ==================================
+
+        # ----------------------------------
         # UPDATE MEMORY
-        # ==================================
+        # ----------------------------------
 
         context = update_context(
             context,
             tool_name,
-            result
+            result,
+            user_input
         )
 
+
     # ======================================
-    # GENERATE FINAL RESPONSE
+    # GENERATE RESPONSE
     # ======================================
 
     response = generate_response(
         plan,
-        results
+        results,
+        student_name
     )
 
+
     # ======================================
-    # RETURN COMPLETE AGENT RESULT
+    # RETURN COMPLETE RESULT
     # ======================================
 
     return {
@@ -292,7 +651,7 @@ def run_agent(
 
 
 # ==========================================
-# TEST
+# FULL INTEGRATION TEST
 # ==========================================
 
 if __name__ == "__main__":
@@ -301,47 +660,78 @@ if __name__ == "__main__":
         "Enter student name: "
     )
 
-    # ======================================
-    # CREATE CONVERSATION MEMORY
-    # ======================================
-
     context = create_context(
         student_name
     )
 
-    # ======================================
-    # TEST QUESTIONS
-    # ======================================
-
     test_questions = [
 
-        "What is my average?",
-
-        "What is my attendance?",
-
         "What is my lowest subject?",
+
+        "How much?",
+
+        "Why?",
+
+        "Is that good?",
+
+        "Is that bad?",
+
+        "How did I improve?",
 
         "What is my highest subject?",
 
         "How much?",
 
+        "Why?",
+
+        "Is that good?",
+
+        "Is that bad?",
+
         "How did I improve?",
 
-        "What is my trend?",
+        "What is my average?",
 
-        "What is my risk?",
+        "What is my attendance?",
+
+        "Am I performing well?",
+
+        "Am I at risk?",
 
         "What should I improve?",
 
-        "What does an improving trend mean?",
+        "What is my trend?",
 
-        "Is 80% attendance good?"
+        "What is my average and attendance?",
 
+        "What are my highest and lowest subjects?",
+
+        "Tell me my performance and risk.",
+
+        "hii",
+
+        "hello",
+
+        "thanks",
+
+        "okay",
+
+        "bye"
     ]
 
-    print("\n========================================")
-    print("       AGENT FULL INTEGRATION TEST")
-    print("========================================")
+
+    print(
+        "\n========================================"
+    )
+
+    print(
+        "       AGENT FULL INTEGRATION TEST"
+    )
+
+    print(
+        "========================================"
+    )
+
 
     for question in test_questions:
 
@@ -355,53 +745,28 @@ if __name__ == "__main__":
             context
         )
 
-        # ==================================
-        # PRINT FINAL RESPONSE
-        # ==================================
-
-        print("\nResponse:")
+        print(
+            "\nResponse:"
+        )
 
         print(
             result["response"]
         )
 
-        # ==================================
-        # PRINT PLAN
-        # ==================================
-
-        print("\nPlan:")
+        print(
+            "\nPlan:"
+        )
 
         print(
             result["plan"]
         )
 
-        # ==================================
-        # PRINT RESULTS
-        # ==================================
-
-        print("\nResults:")
-
-        for (
-            tool_name,
-            tool_result
-        ) in result["results"].items():
-
-            print(
-                f"\n[{tool_name}]"
-            )
-
-            print(
-                tool_result
-            )
-
-        # ==================================
-        # RESTORE UPDATED MEMORY
-        # ==================================
-
-        context = result["context"]
-
-        print("\nMemory:")
+        print(
+            "\nMemory:"
+        )
 
         print(
-            context
+            result["context"]
         )
+
+        context = result["context"]

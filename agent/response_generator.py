@@ -1,541 +1,409 @@
 # ==========================================
-# AGENT RESPONSE GENERATOR
-# ==========================================
-# Converts tool results into natural
-# language responses.
+# RESPONSE GENERATOR
 # ==========================================
 
 
 def generate_response(
     plan,
     results,
-    student_name=None
+    student_name
 ):
     """
-    Convert the agent's tool results into
-    a user-friendly response.
+    Convert tool results into a natural-language
+    response.
     """
 
     responses = []
 
+
     # ======================================
-    # AVERAGE
+    # LOOP THROUGH TOOLS
     # ======================================
 
-    if "average" in results:
+    for tool_name in plan:
 
-        result = results["average"]
+        result = results.get(
+            tool_name
+        )
 
-        if result["success"]:
+        if not result:
+            continue
+
+        # ----------------------------------
+        # TOOL FAILED
+        # ----------------------------------
+
+        if not result.get("success", False):
+
+            message = result.get(
+                "message",
+                "Something went wrong."
+            )
+
+            responses.append(
+                message
+            )
+
+            continue
+
+
+        # ==================================
+        # AVERAGE
+        # ==================================
+
+        if tool_name == "average":
+
+            average = result.get(
+                "average"
+            )
 
             responses.append(
                 f"Your average mark is "
-                f"{result['average']:.2f}."
+                f"{average:.2f}."
             )
 
-    # ======================================
-    # ATTENDANCE
-    # ======================================
 
-    if "attendance" in results:
+        # ==================================
+        # ATTENDANCE
+        # ==================================
 
-        result = results["attendance"]
+        elif tool_name == "attendance":
 
-        if result["success"]:
+            attendance = result.get(
+                "attendance"
+            )
 
             responses.append(
                 f"Your overall attendance is "
-                f"{result['attendance']:.2f}%."
+                f"{attendance:.2f}%."
             )
 
-    # ======================================
-    # HIGHEST SUBJECT
-    # ======================================
-    # Important:
-    # Do NOT show the mark here.
-    #
-    # The user can ask:
-    # "How much?"
-    #
-    # and the subject_detail tool will
-    # provide the actual mark.
 
-    if "highest_subject" in results:
+        # ==================================
+        # HIGHEST SUBJECT
+        # ==================================
 
-        result = results["highest_subject"]
+        elif tool_name == "highest_subject":
 
-        if result["success"]:
+            subject = result.get(
+                "subject"
+            )
 
             responses.append(
-                f"{result['subject']} is your "
+                f"{subject} is your "
                 f"highest-scoring subject."
             )
 
-    # ======================================
-    # LOWEST SUBJECT
-    # ======================================
-    # Do NOT show the mark here.
-    #
-    # The user can ask:
-    # "How much?"
-    #
-    # and the subject_detail tool will
-    # provide the actual mark.
 
-    if "lowest_subject" in results:
+        # ==================================
+        # LOWEST SUBJECT
+        # ==================================
 
-        result = results["lowest_subject"]
+        elif tool_name == "lowest_subject":
 
-        if result["success"]:
+            subject = result.get(
+                "subject"
+            )
 
             responses.append(
-                f"{result['subject']} is your "
+                f"{subject} is your "
                 f"lowest-scoring subject."
             )
 
-    # ======================================
-    # SUBJECT DETAIL
-    # ======================================
 
-    if "subject_detail" in results:
+        # ==================================
+        # SUBJECT DETAIL
+        # ==================================
 
-        result = results["subject_detail"]
+        elif tool_name == "subject_detail":
 
-        if result["success"]:
-
-            responses.append(
-                f"Your mark in "
-                f"{result['subject']} is "
-                f"{result['mark']:.2f}."
+            subject = result.get(
+                "subject"
             )
 
-    # ======================================
-    # SUBJECT TREND
-    # ======================================
+            mark = result.get(
+                "mark"
+            )
 
-    if "subject_trend" in results:
+            responses.append(
+                f"Your mark in {subject} "
+                f"is {mark:.2f}."
+            )
 
-        result = results["subject_trend"]
 
-        if result["success"]:
+        # ==================================
+        # SUBJECT EXPLANATION
+        # ==================================
 
-            subject = result["subject"]
+        elif tool_name == "subject_explanation":
 
-            first_mark = result["first_mark"]
+            explanation = result.get(
+                "explanation"
+            )
 
-            latest_mark = result["latest_mark"]
+            if explanation:
 
-            improvement = result["improvement"]
-
-            if improvement > 0:
-
-                trend_message = (
-                    f"Your mark in {subject} "
-                    f"improved by "
-                    f"{improvement:.2f} marks."
-                )
-
-            elif improvement < 0:
-
-                trend_message = (
-                    f"Your mark in {subject} "
-                    f"decreased by "
-                    f"{abs(improvement):.2f} marks."
+                responses.append(
+                    explanation
                 )
 
             else:
 
-                trend_message = (
-                    f"Your mark in {subject} "
-                    f"remained stable."
+                responses.append(
+                    result.get(
+                        "message",
+                        "I couldn't explain that."
+                    )
                 )
 
-            responses.append(
-                f"{trend_message}\n"
-                f"First mark: {first_mark:.2f}\n"
-                f"Latest mark: {latest_mark:.2f}"
+
+        # ==================================
+        # SUBJECT TREND
+        # ==================================
+
+        elif tool_name == "subject_trend":
+
+            subject = result.get(
+                "subject"
             )
 
-    # ======================================
-    # SUBJECT EXPLANATION
-    # ======================================
-    # Handles questions such as:
-    #
-    # "Why?"
-    # "Why is OS my lowest?"
-    # "Why is this my weakest subject?"
-
-    if "subject_explanation" in results:
-
-        result = results["subject_explanation"]
-
-        if result["success"]:
-
-            responses.append(
-                result["explanation"]
+            first_mark = result.get(
+                "first_mark"
             )
 
-    # ======================================
-    # PERFORMANCE
-    # ======================================
+            latest_mark = result.get(
+                "latest_mark"
+            )
 
-    if "performance" in results:
+            improvement = result.get(
+                "improvement"
+            )
 
-        result = results["performance"]
+            if improvement > 0:
 
-        if result["success"]:
+                responses.append(
+                    f"Your mark in {subject} "
+                    f"improved by {improvement:.2f} marks.\n"
+                    f"First mark: {first_mark:.2f}\n"
+                    f"Latest mark: {latest_mark:.2f}"
+                )
+
+            elif improvement < 0:
+
+                responses.append(
+                    f"Your mark in {subject} "
+                    f"decreased by "
+                    f"{abs(improvement):.2f} marks.\n"
+                    f"First mark: {first_mark:.2f}\n"
+                    f"Latest mark: {latest_mark:.2f}"
+                )
+
+            else:
+
+                responses.append(
+                    f"Your mark in {subject} "
+                    f"remained the same.\n"
+                    f"First mark: {first_mark:.2f}\n"
+                    f"Latest mark: {latest_mark:.2f}"
+                )
+
+
+        # ==================================
+        # PERFORMANCE
+        # ==================================
+
+        elif tool_name == "performance":
+
+            status = result.get(
+                "status"
+            )
+
+            average = result.get(
+                "average"
+            )
+
+            attendance = result.get(
+                "attendance"
+            )
 
             responses.append(
                 f"Your performance status is "
-                f"{result['status']}.\n"
-                f"Average mark: "
-                f"{result['average']:.2f}\n"
+                f"{status}.\n"
+                f"Average mark: {average:.2f}\n"
                 f"Overall attendance: "
-                f"{result['attendance']:.2f}%."
+                f"{attendance:.2f}%."
             )
 
-    # ======================================
-    # RISK
-    # ======================================
 
-    if "risk" in results:
+        # ==================================
+        # RISK
+        # ==================================
 
-        result = results["risk"]
+        elif tool_name == "risk":
 
-        if result["success"]:
+            risk_level = result.get(
+                "risk_level"
+            )
+
+            probability = result.get(
+                "risk_probability"
+            )
 
             responses.append(
                 f"Your academic risk level is "
-                f"{result['risk_level']}.\n"
+                f"{risk_level}.\n"
                 f"Risk probability: "
-                f"{result['risk_probability']:.2f}%."
+                f"{probability:.2f}%."
             )
 
-    # ======================================
-    # RECOMMENDATION
-    # ======================================
 
-    if "recommendation" in results:
+        # ==================================
+        # RECOMMENDATION
+        # ==================================
 
-        result = results["recommendation"]
+        elif tool_name == "recommendation":
 
-        if result["success"]:
-
-            recommendation = result[
+            recommendation = result.get(
                 "recommendation"
-            ]
+            )
 
-            priority_subject = result[
+            priority_subject = result.get(
                 "priority_subject"
-            ]
+            )
 
-            priority_mark = result[
+            priority_mark = result.get(
                 "priority_mark"
-            ]
-
-            responses.append(
-                f"{recommendation}\n"
-                f"Priority subject: "
-                f"{priority_subject} "
-                f"({priority_mark:.2f})"
             )
 
-    # ======================================
-    # OVERALL TREND
-    # ======================================
+            if priority_subject:
 
-    if "trend" in results:
+                responses.append(
+                    f"{recommendation}\n"
+                    f"Priority subject: "
+                    f"{priority_subject} "
+                    f"({priority_mark:.2f})"
+                )
 
-        result = results["trend"]
+            else:
 
-        if result["success"]:
+                responses.append(
+                    recommendation
+                )
 
-            overall_trend = result[
+
+        # ==================================
+        # OVERALL TREND
+        # ==================================
+
+        elif tool_name == "trend":
+
+            overall_trend = result.get(
                 "overall_trend"
-            ]
+            )
 
-            average_improvement = result[
+            average_improvement = result.get(
                 "average_improvement"
-            ]
-
-            responses.append(
-                f"Your overall performance trend "
-                f"is {overall_trend}.\n"
-                f"Average improvement: "
-                f"{average_improvement:+.2f}."
             )
 
-    # ======================================
-    # RAG / ACADEMIC QUESTION
-    # ======================================
+            if average_improvement > 0:
 
-    if "academic_question" in results:
+                responses.append(
+                    f"Your overall performance "
+                    f"trend is {overall_trend}.\n"
+                    f"Average improvement: "
+                    f"+{average_improvement:.2f}."
+                )
 
-        result = results["academic_question"]
+            elif average_improvement < 0:
 
-        if result["success"]:
+                responses.append(
+                    f"Your overall performance "
+                    f"trend is {overall_trend}.\n"
+                    f"Average change: "
+                    f"{average_improvement:.2f}."
+                )
 
-            responses.append(
-                result["answer"]
+            else:
+
+                responses.append(
+                    f"Your overall performance "
+                    f"trend is {overall_trend}.\n"
+                    f"Average improvement: 0.00."
+                )
+
+
+        # ==================================
+        # ACADEMIC QUESTION
+        # ==================================
+
+        elif tool_name == "academic_question":
+
+            answer = result.get(
+                "answer"
             )
 
-    # ======================================
-    # GOODBYE
-    # ======================================
+            responses.append(
+                answer
+            )
 
-    if "goodbye" in results:
 
-        if student_name:
+        # ==================================
+        # GREETING
+        # ==================================
+
+        elif tool_name == "greeting":
+
+            responses.append(
+                f"Hello {student_name}! 👋 "
+                f"How can I help you with your "
+                f"academics today?"
+            )
+
+
+        # ==================================
+        # THANKS
+        # ==================================
+
+        elif tool_name == "thanks":
+
+            responses.append(
+                "You're welcome! 😊 "
+                "I'm here if you need help with "
+                "your academic performance."
+            )
+
+
+        # ==================================
+        # GOODBYE
+        # ==================================
+
+        elif tool_name == "goodbye":
 
             responses.append(
                 f"Goodbye, {student_name}! 👋"
             )
 
+
+        # ==================================
+        # UNKNOWN
+        # ==================================
+
         else:
 
-            responses.append(
-                "Goodbye! 👋"
+            message = result.get(
+                "message",
+                "I couldn't generate a response."
             )
 
-    # ======================================
-    # NO SUCCESSFUL RESULTS
-    # ======================================
+            responses.append(
+                message
+            )
 
-    if not responses:
-
-        return (
-            "I couldn't find enough information "
-            "to answer your question."
-        )
 
     # ======================================
     # COMBINE RESPONSES
     # ======================================
 
-    return "\n\n".join(responses)
-
-
-# ==========================================
-# TEST
-# ==========================================
-
-if __name__ == "__main__":
-
-    print("\n========================================")
-    print("       RESPONSE GENERATOR TEST")
-    print("========================================")
-
-    # --------------------------------------
-    # TEST 1 - HIGHEST SUBJECT
-    # --------------------------------------
-
-    plan = [
-        "highest_subject"
-    ]
-
-    results = {
-
-        "highest_subject": {
-
-            "success": True,
-
-            "subject": "DBMS",
-
-            "mark": 94.0
-        }
-    }
-
-    print("\nTest 1:")
-
-    print(
-        generate_response(
-            plan,
-            results,
-            "Jaiakash"
-        )
+    return "\n\n".join(
+        responses
     )
-
-    # --------------------------------------
-    # TEST 2 - LOWEST SUBJECT
-    # --------------------------------------
-
-    plan = [
-        "lowest_subject"
-    ]
-
-    results = {
-
-        "lowest_subject": {
-
-            "success": True,
-
-            "subject": "OS",
-
-            "mark": 82.0
-        }
-    }
-
-    print("\nTest 2:")
-
-    print(
-        generate_response(
-            plan,
-            results,
-            "Jaiakash"
-        )
-    )
-
-    # --------------------------------------
-    # TEST 3 - SUBJECT DETAIL
-    # --------------------------------------
-
-    plan = [
-        "subject_detail"
-    ]
-
-    results = {
-
-        "subject_detail": {
-
-            "success": True,
-
-            "subject": "OS",
-
-            "mark": 82.0
-        }
-    }
-
-    print("\nTest 3:")
-
-    print(
-        generate_response(
-            plan,
-            results,
-            "Jaiakash"
-        )
-    )
-
-    # --------------------------------------
-    # TEST 4 - SUBJECT EXPLANATION
-    # --------------------------------------
-
-    plan = [
-        "subject_explanation"
-    ]
-
-    results = {
-
-        "subject_explanation": {
-
-            "success": True,
-
-            "explanation": (
-                "OS is your lowest-scoring subject "
-                "because it has the lowest mark "
-                "among your subjects."
-            )
-        }
-    }
-
-    print("\nTest 4:")
-
-    print(
-        generate_response(
-            plan,
-            results,
-            "Jaiakash"
-        )
-    )
-
-    # --------------------------------------
-    # TEST 5 - GOODBYE
-    # --------------------------------------
-
-    plan = [
-        "goodbye"
-    ]
-
-    results = {
-
-        "goodbye": {
-
-            "success": True
-        }
-    }
-
-    print("\nTest 5:")
-
-    print(
-        generate_response(
-            plan,
-            results,
-            "Jaiakash"
-        )
-    )
-
-    # --------------------------------------
-    # TEST 6 - SUBJECT TREND
-    # --------------------------------------
-
-    plan = [
-        "subject_trend"
-    ]
-
-    results = {
-
-        "subject_trend": {
-
-            "success": True,
-
-            "subject": "OS",
-
-            "first_mark": 82.0,
-
-            "latest_mark": 88.0,
-
-            "improvement": 6.0
-        }
-    }
-
-    print("\nTest 6:")
-
-    print(
-        generate_response(
-            plan,
-            results,
-            "Jaiakash"
-        )
-    )
-
-    # --------------------------------------
-    # TEST 7 - ACADEMIC QUESTION
-    # --------------------------------------
-
-    plan = [
-        "academic_question"
-    ]
-
-    results = {
-
-        "academic_question": {
-
-            "success": True,
-
-            "answer": (
-                "An improving trend means that "
-                "recent marks are higher than "
-                "earlier marks."
-            )
-        }
-    }
-
-    print("\nTest 7:")
-
-    print(
-        generate_response(
-            plan,
-            results,
-            "Jaiakash"
-        )
-    )
-

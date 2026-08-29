@@ -14,21 +14,8 @@ def create_plan(user_input, context=None):
     Analyze the user's question and return
     the tools required to answer it.
 
-    Examples:
-
-        "What is my average?"
-        -> ["average"]
-
-        "How am I performing and what should
-         I improve?"
-        -> ["performance", "recommendation"]
-
-        "What is my lowest subject?"
-        -> ["lowest_subject"]
-
-        "How much?"
-        -> ["subject_detail"]
-        when a previous subject exists in memory.
+    The planner uses conversation memory
+    to understand short follow-up questions.
     """
 
     text = user_input.lower().strip()
@@ -42,30 +29,34 @@ def create_plan(user_input, context=None):
     if context is None:
         context = {}
 
-    last_intent = context.get(
-        "last_intent"
-    )
+    last_intent = context.get("last_intent")
+    last_subject = context.get("last_subject")
 
-    last_subject = context.get(
-        "last_subject"
-    )
+    # ======================================
+    # GOODBYE
+    # ======================================
+
+    goodbye_phrases = [
+        "bye",
+        "bye bye",
+        "byee",
+        "byeee",
+        "goodbye",
+        "good bye",
+        "see you",
+        "see ya",
+        "exit",
+        "quit"
+    ]
+
+    if text in goodbye_phrases:
+        return ["goodbye"]
 
     # ======================================
     # ACADEMIC QUESTION
     # ======================================
-    # These questions ask about general
-    # academic knowledge rather than the
-    # student's personal data.
-    #
-    # Examples:
-    #
-    # "What does an improving trend mean?"
-    # "Is 80% attendance good?"
-    # "What is academic performance?"
-    # ======================================
 
     academic_phrases = [
-
         "what does",
         "what is academic",
         "academic performance",
@@ -90,40 +81,14 @@ def create_plan(user_input, context=None):
         for phrase in academic_phrases
     )
 
-    # If it is clearly a general academic
-    # question, use RAG directly.
     if is_academic_question:
-
-        plan.append(
-            "academic_question"
-        )
-
-        return list(
-            dict.fromkeys(plan)
-        )
+        return ["academic_question"]
 
     # ======================================
     # SUBJECT DETAIL FOLLOW-UP
     # ======================================
-    # These questions depend on the subject
-    # stored in conversation memory.
-    #
-    # Examples:
-    #
-    # "How much?"
-    # "What is my mark?"
-    # "What is my score?"
-    #
-    # If the previous subject was OS:
-    #
-    # "How much?"
-    # -> subject_detail
-    #
-    # The tool can then use OS from memory.
-    # ======================================
 
     subject_detail_phrases = [
-
         "how much",
         "what is the mark",
         "what's the mark",
@@ -144,29 +109,13 @@ def create_plan(user_input, context=None):
             for phrase in subject_detail_phrases
         )
     ):
-
-        plan.append(
-            "subject_detail"
-        )
+        plan.append("subject_detail")
 
     # ======================================
     # SUBJECT TREND FOLLOW-UP
     # ======================================
-    # These questions refer to the subject
-    # stored in memory.
-    #
-    # Examples:
-    #
-    # "How did I improve?"
-    # "Did I improve?"
-    # "How is it progressing?"
-    # "Is it getting better?"
-    #
-    # -> subject_trend
-    # ======================================
 
     subject_trend_phrases = [
-
         "how did i improve",
         "did i improve",
         "how did it improve",
@@ -188,30 +137,56 @@ def create_plan(user_input, context=None):
             for phrase in subject_trend_phrases
         )
     ):
+        plan.append("subject_trend")
 
-        plan.append(
-            "subject_trend"
+    # ======================================
+    # SUBJECT EXPLANATION / WHY
+    # ======================================
+
+    # Short follow-up questions such as:
+    #
+    # "Why?"
+    # "Why is OS my lowest?"
+    # "Why is this my weakest subject?"
+    #
+    # depend on the previous subject.
+
+    why_phrases = [
+        "why",
+        "why is it",
+        "why is this",
+        "why is that",
+        "why this subject",
+        "why this",
+        "why is it low",
+        "why is this low",
+        "why is this my lowest",
+        "why is this my highest"
+    ]
+
+    if (
+        last_subject is not None
+        and any(
+            phrase == text
+            or phrase in text
+            for phrase in why_phrases
         )
+    ):
+        plan.append("subject_explanation")
 
     # ======================================
     # AVERAGE
     # ======================================
 
     if "average" in text:
-
-        plan.append(
-            "average"
-        )
+        plan.append("average")
 
     # ======================================
     # ATTENDANCE
     # ======================================
 
     if "attendance" in text:
-
-        plan.append(
-            "attendance"
-        )
+        plan.append("attendance")
 
     # ======================================
     # HIGHEST SUBJECT
@@ -227,10 +202,7 @@ def create_plan(user_input, context=None):
             "highest score"
         ]
     ):
-
-        plan.append(
-            "highest_subject"
-        )
+        plan.append("highest_subject")
 
     # ======================================
     # LOWEST SUBJECT
@@ -246,10 +218,7 @@ def create_plan(user_input, context=None):
             "lowest score"
         ]
     ):
-
-        plan.append(
-            "lowest_subject"
-        )
+        plan.append("lowest_subject")
 
     # ======================================
     # PERFORMANCE
@@ -263,20 +232,14 @@ def create_plan(user_input, context=None):
             "how am i doing"
         ]
     ):
-
-        plan.append(
-            "performance"
-        )
+        plan.append("performance")
 
     # ======================================
     # RISK
     # ======================================
 
     if "risk" in text:
-
-        plan.append(
-            "risk"
-        )
+        plan.append("risk")
 
     # ======================================
     # RECOMMENDATION
@@ -293,32 +256,13 @@ def create_plan(user_input, context=None):
             "what should i focus on"
         ]
     ):
-
-        plan.append(
-            "recommendation"
-        )
+        plan.append("recommendation")
 
     # ======================================
     # OVERALL TREND
     # ======================================
-    # This is checked after subject-trend.
-    #
-    # Important:
-    # If the question is clearly referring
-    # to the remembered subject, we should
-    # NOT also add the general "trend" tool.
-    #
-    # Example:
-    #
-    # "How is it progressing?"
-    # -> subject_trend
-    #
-    # "What is my trend?"
-    # -> trend
-    # ======================================
 
     overall_trend_phrases = [
-
         "what is my trend",
         "what's my trend",
         "my overall trend",
@@ -331,7 +275,6 @@ def create_plan(user_input, context=None):
     ]
 
     general_trend_words = [
-
         "trend",
         "improving",
         "getting better",
@@ -339,53 +282,24 @@ def create_plan(user_input, context=None):
         "progress"
     ]
 
-    # First handle explicit overall-trend
-    # questions.
-
     if any(
         phrase in text
         for phrase in overall_trend_phrases
     ):
-
-        plan.append(
-            "trend"
-        )
-
-    # Otherwise handle general trend words
-    # only when this is NOT a subject follow-up.
+        plan.append("trend")
 
     elif not any(
         phrase in text
         for phrase in subject_trend_phrases
     ):
-
         if any(
             phrase in text
             for phrase in general_trend_words
         ):
-
-            plan.append(
-                "trend"
-            )
+            plan.append("trend")
 
     # ======================================
     # MEMORY-BASED SUBJECT DETAIL
-    # ======================================
-    # Handle short follow-up questions that
-    # were not caught above.
-    #
-    # Example:
-    #
-    # Previous:
-    # "What is my lowest subject?"
-    #
-    # Memory:
-    # last_subject = OS
-    #
-    # User:
-    # "What about it?"
-    #
-    # -> subject_detail
     # ======================================
 
     if not plan and last_subject is not None:
@@ -397,14 +311,10 @@ def create_plan(user_input, context=None):
                 "what about it",
                 "tell me more",
                 "more about it",
-                "what about this subject",
-                "how is it"
+                "what about this subject"
             ]
         ):
-
-            plan.append(
-                "subject_detail"
-            )
+            plan.append("subject_detail")
 
     # ======================================
     # MEMORY-BASED SUBJECT TREND
@@ -424,10 +334,7 @@ def create_plan(user_input, context=None):
                 "changed"
             ]
         ):
-
-            plan.append(
-                "subject_trend"
-            )
+            plan.append("subject_trend")
 
     # ======================================
     # REMOVE DUPLICATES
@@ -450,70 +357,9 @@ if __name__ == "__main__":
     print("          AGENT PLANNER TEST")
     print("========================================")
 
-    # --------------------------------------
-    # Initial memory
-    # --------------------------------------
-
-    context = {
-        "student_name": "Jaiakash",
-        "last_intent": None,
-        "last_subject": None,
-        "last_result": None
-    }
-
-    # --------------------------------------
-    # Normal questions
-    # --------------------------------------
-
-    test_questions = [
-
-        "What is my average?",
-
-        "What is my attendance?",
-
-        "Which is my highest subject?",
-
-        "Which is my lowest subject?",
-
-        "How am I performing?",
-
-        "What is my risk?",
-
-        "What should I improve?",
-
-        "What is my trend?",
-
-        "How am I performing and what should I improve?",
-
-        "What does an improving trend mean?",
-
-        "Is 80% attendance good?",
-
-        "What is academic performance?"
-    ]
-
-    print(
-        "\n--------------- NORMAL QUESTIONS ---------------"
-    )
-
-    for question in test_questions:
-
-        plan = create_plan(
-            question,
-            context
-        )
-
-        print(
-            f"\nQuestion: {question}"
-        )
-
-        print(
-            f"Plan    : {plan}"
-        )
-
-    # --------------------------------------
-    # Simulate previous subject
-    # --------------------------------------
+    # ======================================
+    # NORMAL MEMORY
+    # ======================================
 
     context = {
         "student_name": "Jaiakash",
@@ -526,38 +372,29 @@ if __name__ == "__main__":
         }
     }
 
-    # --------------------------------------
-    # Memory follow-up questions
-    # --------------------------------------
-
-    follow_up_questions = [
-
+    test_questions = [
+        "What is my average?",
+        "What is my attendance?",
+        "Which is my highest subject?",
+        "Which is my lowest subject?",
+        "How am I performing?",
+        "What is my risk?",
+        "What should I improve?",
+        "What is my trend?",
         "How much?",
-
-        "What is my mark?",
-
-        "What is my score?",
-
         "How did I improve?",
-
-        "Did I improve?",
-
-        "How is it progressing?",
-
-        "Is it getting better?",
-
-        "What about it?"
+        "Why?",
+        "Why is it low?",
+        "What about it?",
+        "bye",
+        "byee",
+        "bye bye",
+        "goodbye",
+        "What does an improving trend mean?",
+        "Is 80% attendance good?"
     ]
 
-    print(
-        "\n--------------- MEMORY FOLLOW-UP TEST ---------------"
-    )
-
-    print(
-        f"\nMemory: {context}"
-    )
-
-    for question in follow_up_questions:
+    for question in test_questions:
 
         plan = create_plan(
             question,

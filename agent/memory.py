@@ -2,6 +2,7 @@
 # AGENT MEMORY
 # ==========================================
 
+
 def create_context(student_name):
     """
     Create a fresh conversation context
@@ -26,8 +27,8 @@ def update_context(
     result
 ):
     """
-    Update the conversation context
-    after executing a tool.
+    Update conversation memory after
+    executing a tool.
     """
 
     context["last_intent"] = intent
@@ -41,10 +42,41 @@ def update_context(
         "highest_subject",
         "lowest_subject"
     ]:
+
         if result.get("success"):
-            context["last_subject"] = result.get(
-                "subject"
-            )
+
+            subject = result.get("subject")
+
+            if subject:
+                context["last_subject"] = subject
+
+    # --------------------------------------
+    # Subject detail
+    # --------------------------------------
+    # Keep the remembered subject.
+
+    elif intent == "subject_detail":
+
+        if result.get("success"):
+
+            subject = result.get("subject")
+
+            if subject:
+                context["last_subject"] = subject
+
+    # --------------------------------------
+    # Subject trend
+    # --------------------------------------
+    # Keep the subject used for the trend.
+
+    elif intent == "subject_trend":
+
+        if result.get("success"):
+
+            subject = result.get("subject")
+
+            if subject:
+                context["last_subject"] = subject
 
     return context
 
@@ -91,7 +123,7 @@ if __name__ == "__main__":
     result = {
         "success": True,
         "subject": "OS",
-        "mark": 68.0
+        "mark": 82.0
     }
 
     context = update_context(
@@ -100,7 +132,26 @@ if __name__ == "__main__":
         result
     )
 
-    print("\nUpdated Context:")
+    print("\nAfter lowest_subject:")
+    print(context)
+
+    # --------------------------------------
+    # Simulate subject detail
+    # --------------------------------------
+
+    result = {
+        "success": True,
+        "subject": "OS",
+        "mark": 82.0
+    }
+
+    context = update_context(
+        context,
+        "subject_detail",
+        result
+    )
+
+    print("\nAfter subject_detail:")
     print(context)
 
     print(

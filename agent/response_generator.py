@@ -1,12 +1,16 @@
 # ==========================================
 # AGENT RESPONSE GENERATOR
 # ==========================================
-# Converts tool results into a natural
-# language response.
+# Converts tool results into natural
+# language responses.
 # ==========================================
 
 
-def generate_response(plan, results):
+def generate_response(
+    plan,
+    results,
+    student_name=None
+):
     """
     Convert the agent's tool results into
     a user-friendly response.
@@ -19,9 +23,11 @@ def generate_response(plan, results):
     # ======================================
 
     if "average" in results:
+
         result = results["average"]
 
         if result["success"]:
+
             responses.append(
                 f"Your average mark is "
                 f"{result['average']:.2f}."
@@ -32,9 +38,11 @@ def generate_response(plan, results):
     # ======================================
 
     if "attendance" in results:
+
         result = results["attendance"]
 
         if result["success"]:
+
             responses.append(
                 f"Your overall attendance is "
                 f"{result['attendance']:.2f}%."
@@ -43,29 +51,46 @@ def generate_response(plan, results):
     # ======================================
     # HIGHEST SUBJECT
     # ======================================
+    # Important:
+    # Do NOT show the mark here.
+    #
+    # The user can ask:
+    # "How much?"
+    #
+    # and the subject_detail tool will
+    # provide the actual mark.
 
     if "highest_subject" in results:
+
         result = results["highest_subject"]
 
         if result["success"]:
+
             responses.append(
-                f"{result['subject']} is your highest "
-                f"scoring subject with "
-                f"{result['mark']:.2f} marks."
+                f"{result['subject']} is your "
+                f"highest-scoring subject."
             )
 
     # ======================================
     # LOWEST SUBJECT
     # ======================================
+    # Do NOT show the mark here.
+    #
+    # The user can ask:
+    # "How much?"
+    #
+    # and the subject_detail tool will
+    # provide the actual mark.
 
     if "lowest_subject" in results:
+
         result = results["lowest_subject"]
 
         if result["success"]:
+
             responses.append(
-                f"{result['subject']} is your lowest "
-                f"scoring subject with "
-                f"{result['mark']:.2f} marks."
+                f"{result['subject']} is your "
+                f"lowest-scoring subject."
             )
 
     # ======================================
@@ -73,9 +98,11 @@ def generate_response(plan, results):
     # ======================================
 
     if "subject_detail" in results:
+
         result = results["subject_detail"]
 
         if result["success"]:
+
             responses.append(
                 f"Your mark in "
                 f"{result['subject']} is "
@@ -87,30 +114,40 @@ def generate_response(plan, results):
     # ======================================
 
     if "subject_trend" in results:
+
         result = results["subject_trend"]
 
         if result["success"]:
 
             subject = result["subject"]
+
             first_mark = result["first_mark"]
+
             latest_mark = result["latest_mark"]
+
             improvement = result["improvement"]
 
             if improvement > 0:
+
                 trend_message = (
-                    f"Your mark in {subject} improved by "
+                    f"Your mark in {subject} "
+                    f"improved by "
                     f"{improvement:.2f} marks."
                 )
 
             elif improvement < 0:
+
                 trend_message = (
-                    f"Your mark in {subject} decreased by "
+                    f"Your mark in {subject} "
+                    f"decreased by "
                     f"{abs(improvement):.2f} marks."
                 )
 
             else:
+
                 trend_message = (
-                    f"Your mark in {subject} remained stable."
+                    f"Your mark in {subject} "
+                    f"remained stable."
                 )
 
             responses.append(
@@ -120,13 +157,34 @@ def generate_response(plan, results):
             )
 
     # ======================================
+    # SUBJECT EXPLANATION
+    # ======================================
+    # Handles questions such as:
+    #
+    # "Why?"
+    # "Why is OS my lowest?"
+    # "Why is this my weakest subject?"
+
+    if "subject_explanation" in results:
+
+        result = results["subject_explanation"]
+
+        if result["success"]:
+
+            responses.append(
+                result["explanation"]
+            )
+
+    # ======================================
     # PERFORMANCE
     # ======================================
 
     if "performance" in results:
+
         result = results["performance"]
 
         if result["success"]:
+
             responses.append(
                 f"Your performance status is "
                 f"{result['status']}.\n"
@@ -141,9 +199,11 @@ def generate_response(plan, results):
     # ======================================
 
     if "risk" in results:
+
         result = results["risk"]
 
         if result["success"]:
+
             responses.append(
                 f"Your academic risk level is "
                 f"{result['risk_level']}.\n"
@@ -156,6 +216,7 @@ def generate_response(plan, results):
     # ======================================
 
     if "recommendation" in results:
+
         result = results["recommendation"]
 
         if result["success"]:
@@ -184,6 +245,7 @@ def generate_response(plan, results):
     # ======================================
 
     if "trend" in results:
+
         result = results["trend"]
 
         if result["success"]:
@@ -208,11 +270,31 @@ def generate_response(plan, results):
     # ======================================
 
     if "academic_question" in results:
+
         result = results["academic_question"]
 
         if result["success"]:
+
             responses.append(
                 result["answer"]
+            )
+
+    # ======================================
+    # GOODBYE
+    # ======================================
+
+    if "goodbye" in results:
+
+        if student_name:
+
+            responses.append(
+                f"Goodbye, {student_name}! 👋"
+            )
+
+        else:
+
+            responses.append(
+                "Goodbye! 👋"
             )
 
     # ======================================
@@ -220,6 +302,7 @@ def generate_response(plan, results):
     # ======================================
 
     if not responses:
+
         return (
             "I couldn't find enough information "
             "to answer your question."
@@ -243,31 +326,22 @@ if __name__ == "__main__":
     print("========================================")
 
     # --------------------------------------
-    # TEST 1 - PERFORMANCE + RECOMMENDATION
+    # TEST 1 - HIGHEST SUBJECT
     # --------------------------------------
 
     plan = [
-        "performance",
-        "recommendation"
+        "highest_subject"
     ]
 
     results = {
-        "performance": {
-            "success": True,
-            "status": "Excellent",
-            "average": 89.17,
-            "attendance": 94.17
-        },
 
-        "recommendation": {
+        "highest_subject": {
+
             "success": True,
-            "recommendation": (
-                "Performance is currently stable. "
-                "Continue maintaining good marks "
-                "and attendance, especially in DBMS."
-            ),
-            "priority_subject": "OS",
-            "priority_mark": 82.0
+
+            "subject": "DBMS",
+
+            "mark": 94.0
         }
     }
 
@@ -276,29 +350,27 @@ if __name__ == "__main__":
     print(
         generate_response(
             plan,
-            results
+            results,
+            "Jaiakash"
         )
     )
 
     # --------------------------------------
-    # TEST 2 - HIGHEST + LOWEST
+    # TEST 2 - LOWEST SUBJECT
     # --------------------------------------
 
     plan = [
-        "highest_subject",
         "lowest_subject"
     ]
 
     results = {
-        "highest_subject": {
-            "success": True,
-            "subject": "DBMS",
-            "mark": 94.0
-        },
 
         "lowest_subject": {
+
             "success": True,
+
             "subject": "OS",
+
             "mark": 82.0
         }
     }
@@ -308,25 +380,28 @@ if __name__ == "__main__":
     print(
         generate_response(
             plan,
-            results
+            results,
+            "Jaiakash"
         )
     )
 
     # --------------------------------------
-    # TEST 3 - RISK
+    # TEST 3 - SUBJECT DETAIL
     # --------------------------------------
 
     plan = [
-        "risk"
+        "subject_detail"
     ]
 
     results = {
-        "risk": {
+
+        "subject_detail": {
+
             "success": True,
-            "risk_level": "Low",
-            "risk_probability": 3.23,
-            "average": 89.17,
-            "attendance": 94.17
+
+            "subject": "OS",
+
+            "mark": 82.0
         }
     }
 
@@ -335,23 +410,30 @@ if __name__ == "__main__":
     print(
         generate_response(
             plan,
-            results
+            results,
+            "Jaiakash"
         )
     )
 
     # --------------------------------------
-    # TEST 4 - SUBJECT DETAIL
+    # TEST 4 - SUBJECT EXPLANATION
     # --------------------------------------
 
     plan = [
-        "subject_detail"
+        "subject_explanation"
     ]
 
     results = {
-        "subject_detail": {
+
+        "subject_explanation": {
+
             "success": True,
-            "subject": "OS",
-            "mark": 68.0
+
+            "explanation": (
+                "OS is your lowest-scoring subject "
+                "because it has the lowest mark "
+                "among your subjects."
+            )
         }
     }
 
@@ -360,25 +442,24 @@ if __name__ == "__main__":
     print(
         generate_response(
             plan,
-            results
+            results,
+            "Jaiakash"
         )
     )
 
     # --------------------------------------
-    # TEST 5 - SUBJECT TREND
+    # TEST 5 - GOODBYE
     # --------------------------------------
 
     plan = [
-        "subject_trend"
+        "goodbye"
     ]
 
     results = {
-        "subject_trend": {
-            "success": True,
-            "subject": "OS",
-            "first_mark": 68.0,
-            "latest_mark": 75.0,
-            "improvement": 7.0
+
+        "goodbye": {
+
+            "success": True
         }
     }
 
@@ -387,26 +468,32 @@ if __name__ == "__main__":
     print(
         generate_response(
             plan,
-            results
+            results,
+            "Jaiakash"
         )
     )
 
     # --------------------------------------
-    # TEST 6 - ACADEMIC QUESTION
+    # TEST 6 - SUBJECT TREND
     # --------------------------------------
 
     plan = [
-        "academic_question"
+        "subject_trend"
     ]
 
     results = {
-        "academic_question": {
+
+        "subject_trend": {
+
             "success": True,
-            "answer": (
-                "An improving trend means that "
-                "recent marks are higher than "
-                "earlier marks."
-            )
+
+            "subject": "OS",
+
+            "first_mark": 82.0,
+
+            "latest_mark": 88.0,
+
+            "improvement": 6.0
         }
     }
 
@@ -415,6 +502,40 @@ if __name__ == "__main__":
     print(
         generate_response(
             plan,
-            results
+            results,
+            "Jaiakash"
         )
     )
+
+    # --------------------------------------
+    # TEST 7 - ACADEMIC QUESTION
+    # --------------------------------------
+
+    plan = [
+        "academic_question"
+    ]
+
+    results = {
+
+        "academic_question": {
+
+            "success": True,
+
+            "answer": (
+                "An improving trend means that "
+                "recent marks are higher than "
+                "earlier marks."
+            )
+        }
+    }
+
+    print("\nTest 7:")
+
+    print(
+        generate_response(
+            plan,
+            results,
+            "Jaiakash"
+        )
+    )
+

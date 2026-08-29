@@ -19,10 +19,17 @@ from agent.memory import (
     update_context
 )
 
+from agent.response_generator import (
+    generate_response
+)
+
 
 # ==========================================
 # TOOL EXECUTOR
 # ==========================================
+# Executes the tool selected by the planner.
+# ==========================================
+
 
 def execute_tool(
     tool_name,
@@ -83,7 +90,10 @@ def execute_tool(
         if subject is None:
             return {
                 "success": False,
-                "message": "I don't know which subject you are referring to."
+                "message": (
+                    "I don't know which subject "
+                    "you are referring to."
+                )
             }
 
         return get_subject_detail(
@@ -111,7 +121,10 @@ def execute_tool(
         if subject is None:
             return {
                 "success": False,
-                "message": "I don't know which subject you are referring to."
+                "message": (
+                    "I don't know which subject "
+                    "you are referring to."
+                )
             }
 
         return get_subject_trend(
@@ -148,6 +161,25 @@ def execute_tool(
 # ==========================================
 # AGENT CORE
 # ==========================================
+# Complete agent flow:
+#
+# User Question
+#       ↓
+#     Planner
+#       ↓
+#      Plan
+#       ↓
+# Tool Executor
+#       ↓
+#     Results
+#       ↓
+# Memory Update
+#       ↓
+# Response Generator
+#       ↓
+# Natural Language Response
+# ==========================================
+
 
 def run_agent(
     student_name,
@@ -155,8 +187,8 @@ def run_agent(
     context=None
 ):
     """
-    Plan, execute tools, and update
-    agent memory.
+    Plan, execute tools, update memory,
+    and generate the final natural-language response.
     """
 
     # ======================================
@@ -184,12 +216,15 @@ def run_agent(
     # ======================================
 
     if not plan:
+        response = (
+            "I don't know which tool to use "
+            "for this question."
+        )
+
         return {
             "success": False,
-            "message": (
-                "I don't know which tool to use "
-                "for this question."
-            ),
+            "message": response,
+            "response": response,
             "plan": [],
             "results": {},
             "context": context
@@ -203,12 +238,24 @@ def run_agent(
 
     for tool_name in plan:
 
-        result = execute_tool(
-            tool_name,
-            student_name,
-            user_input,
-            context
-        )
+        try:
+
+            result = execute_tool(
+                tool_name,
+                student_name,
+                user_input,
+                context
+            )
+
+        except Exception as error:
+
+            result = {
+                "success": False,
+                "message": (
+                    f"Tool '{tool_name}' failed: "
+                    f"{str(error)}"
+                )
+            }
 
         results[tool_name] = result
 
@@ -223,11 +270,21 @@ def run_agent(
         )
 
     # ======================================
-    # RETURN AGENT RESULT
+    # GENERATE FINAL RESPONSE
+    # ======================================
+
+    response = generate_response(
+        plan,
+        results
+    )
+
+    # ======================================
+    # RETURN COMPLETE AGENT RESULT
     # ======================================
 
     return {
         "success": True,
+        "response": response,
         "plan": plan,
         "results": results,
         "context": context
@@ -260,6 +317,8 @@ if __name__ == "__main__":
 
         "What is my average?",
 
+        "What is my attendance?",
+
         "What is my lowest subject?",
 
         "What is my highest subject?",
@@ -277,10 +336,11 @@ if __name__ == "__main__":
         "What does an improving trend mean?",
 
         "Is 80% attendance good?"
+
     ]
 
     print("\n========================================")
-    print("       AGENT MEMORY INTEGRATION TEST")
+    print("       AGENT FULL INTEGRATION TEST")
     print("========================================")
 
     for question in test_questions:
@@ -296,11 +356,24 @@ if __name__ == "__main__":
         )
 
         # ==================================
+        # PRINT FINAL RESPONSE
+        # ==================================
+
+        print("\nResponse:")
+
+        print(
+            result["response"]
+        )
+
+        # ==================================
         # PRINT PLAN
         # ==================================
 
         print("\nPlan:")
-        print(result["plan"])
+
+        print(
+            result["plan"]
+        )
 
         # ==================================
         # PRINT RESULTS
@@ -317,7 +390,9 @@ if __name__ == "__main__":
                 f"\n[{tool_name}]"
             )
 
-            print(tool_result)
+            print(
+                tool_result
+            )
 
         # ==================================
         # RESTORE UPDATED MEMORY
@@ -326,4 +401,7 @@ if __name__ == "__main__":
         context = result["context"]
 
         print("\nMemory:")
-        print(context)
+
+        print(
+            context
+        )

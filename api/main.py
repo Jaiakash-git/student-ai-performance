@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
+
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.schemas import ChatRequest, ChatResponse
-from nlp.assistant import process_message
+
+from agent.agent_core import run_agent
 
 
 app = FastAPI(
@@ -11,11 +13,22 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
+# ==========================================
+# CORS
+# ==========================================
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+
+    allow_origins=[
+        "http://localhost:5173"
+    ],
+
     allow_credentials=True,
+
     allow_methods=["*"],
+
     allow_headers=["*"],
 )
 
@@ -26,6 +39,7 @@ app.add_middleware(
 
 @app.get("/")
 def root():
+
     return {
         "message": "Student AI Assistant API is running"
     }
@@ -37,6 +51,7 @@ def root():
 
 @app.get("/health")
 def health():
+
     return {
         "status": "healthy"
     }
@@ -53,19 +68,50 @@ def health():
 def chat(request: ChatRequest):
 
     try:
-        response, updated_context = process_message(
-            request.student_name,
-            request.message,
-            request.context
+
+        # ==================================
+        # RUN AI AGENT
+        # ==================================
+
+        result = run_agent(
+            student_name=request.student_name,
+            user_input=request.message,
+            context=request.context
         )
+
+
+        # ==================================
+        # CHECK AGENT RESULT
+        # ==================================
+
+        if not result["success"]:
+
+            return ChatResponse(
+                response=result["response"],
+                context=result["context"]
+            )
+
+
+        # ==================================
+        # RETURN AGENT RESPONSE
+        # ==================================
 
         return ChatResponse(
-            response=response,
-            context=updated_context
+            response=result["response"],
+            context=result["context"]
         )
 
-    except Exception:
+
+    except Exception as error:
+
+        print(
+            f"Chat error: {error}"
+        )
+
         raise HTTPException(
             status_code=500,
-            detail="An internal error occurred while processing your request."
+            detail=(
+                "An internal error occurred "
+                "while processing your request."
+            )
         )

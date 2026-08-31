@@ -55,3 +55,55 @@ class DashboardResponse(BaseModel):
     recommendation: str
     priority_subject: str
     priority_mark: float
+
+# ==========================================
+# REGISTER REQUEST
+# ==========================================
+
+class RegisterRequest(BaseModel):
+
+    student_id: int = Field(gt=0)
+
+    username: str = Field(
+        min_length=3,
+        max_length=50
+    )
+
+    password: str = Field(
+        min_length=6,
+        max_length=100
+    )
+
+
+# ==========================================
+# LOGIN REQUEST
+# ==========================================
+
+class LoginRequest(BaseModel):
+
+    username: str = Field(
+        min_length=1,
+        max_length=50
+    )
+
+    password: str = Field(
+        min_length=1,
+        max_length=100
+    )
+
+
+# ==========================================
+# AUTH RESPONSE
+# ==========================================
+
+class AuthResponse(BaseModel):
+
+    message: str
+
+    access_token: str
+
+    token_type: str = "bearer"
+
+    student_id: int
+
+    username: str

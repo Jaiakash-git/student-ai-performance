@@ -1,12 +1,26 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header
+
+from database import get_connection
 
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.schemas import (
     ChatRequest,
     ChatResponse,
-    DashboardResponse
+    DashboardResponse,
+    RegisterRequest,
+    LoginRequest,
+    AuthResponse
 )
+
+from api.auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    decode_access_token
+)
+
+from database import get_connection
 
 from agent.agent_core import run_agent
 
@@ -70,6 +84,248 @@ def health():
     return {
         "status": "healthy"
     }
+
+# ==========================================
+# REGISTER
+# ==========================================
+
+@app.post(
+    "/auth/register",
+    response_model=AuthResponse
+)
+def register(request: RegisterRequest):
+
+    connection = None
+    cursor = None
+
+    try:
+
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        # --------------------------------------
+        # CHECK STUDENT
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            SELECT student_id, name
+            FROM students
+            WHERE student_id = %s
+            """,
+            (request.student_id,)
+        )
+
+        student = cursor.fetchone()
+
+        if student is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Student not found."
+            )
+
+        # --------------------------------------
+        # CHECK EXISTING USERNAME
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            SELECT user_id
+            FROM users
+            WHERE username = %s
+            """,
+            (request.username,)
+        )
+
+        existing_user = cursor.fetchone()
+
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Username already exists."
+            )
+
+        # --------------------------------------
+        # CHECK STUDENT ALREADY REGISTERED
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            SELECT user_id
+            FROM users
+            WHERE student_id = %s
+            """,
+            (request.student_id,)
+        )
+
+        existing_student = cursor.fetchone()
+
+        if existing_student is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="This student already has an account."
+            )
+
+        # --------------------------------------
+        # HASH PASSWORD
+        # --------------------------------------
+
+        password_hash = hash_password(
+            request.password
+        )
+
+        # --------------------------------------
+        # CREATE USER
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            INSERT INTO users
+            (
+                student_id,
+                username,
+                password_hash
+            )
+            VALUES (%s, %s, %s)
+            """,
+            (
+                request.student_id,
+                request.username,
+                password_hash
+            )
+        )
+
+        connection.commit()
+
+        return AuthResponse(
+            message="Registration successful.",
+            access_token="",
+            token_type="bearer",
+            student_id=request.student_id,
+            username=request.username
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+
+        print(
+            f"Registration error: {error}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Registration failed."
+        )
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
+
+# ==========================================
+# LOGIN
+# ==========================================
+
+@app.post(
+    "/auth/login",
+    response_model=AuthResponse
+)
+def login(request: LoginRequest):
+
+    connection = None
+    cursor = None
+
+    try:
+
+        connection = get_connection()
+        cursor = connection.cursor(dictionary=True)
+
+        # --------------------------------------
+        # FIND USER
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            SELECT
+                user_id,
+                student_id,
+                username,
+                password_hash
+            FROM users
+            WHERE username = %s
+            """,
+            (request.username,)
+        )
+
+        user = cursor.fetchone()
+
+        if user is None:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid username or password."
+            )
+
+        # --------------------------------------
+        # VERIFY PASSWORD
+        # --------------------------------------
+
+        password_valid = verify_password(
+            request.password,
+            user["password_hash"]
+        )
+
+        if not password_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid username or password."
+            )
+
+        # --------------------------------------
+        # CREATE JWT
+        # --------------------------------------
+
+        access_token = create_access_token(
+            {
+                "user_id": user["user_id"],
+                "student_id": user["student_id"],
+                "username": user["username"]
+            }
+        )
+
+        return AuthResponse(
+            message="Login successful.",
+            access_token=access_token,
+            token_type="bearer",
+            student_id=user["student_id"],
+            username=user["username"]
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as error:
+
+        print(
+            f"Login error: {error}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Login failed."
+        )
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
 
 
 # ==========================================

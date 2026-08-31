@@ -1,3 +1,5 @@
 mysql-connector-python
 python-dotenv
 sentence-transformers
+python-jose[cryptography]
+passlib[bcrypt]

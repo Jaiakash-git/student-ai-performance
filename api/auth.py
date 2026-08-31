@@ -2,11 +2,11 @@
 # AUTHENTICATION UTILITIES
 # ==========================================
 
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
-
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-
 import os
 
 
@@ -97,7 +97,7 @@ def create_access_token(data: dict):
 
 def decode_access_token(token: str):
     """
-    Decode and verify a JWT token.
+    Decode and verify a JWT access token.
     """
 
     try:
@@ -113,3 +113,82 @@ def decode_access_token(token: str):
     except JWTError:
 
         return None
+
+
+# ==========================================
+# HTTP BEARER SECURITY
+# ==========================================
+
+security = HTTPBearer()
+
+
+# ==========================================
+# GET CURRENT USER
+# ==========================================
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(
+        security
+    )
+):
+    """
+    Extract the JWT token from the Authorization
+    header, verify it, and return the authenticated
+    user's information.
+    """
+
+    token = credentials.credentials
+
+    payload = decode_access_token(token)
+
+    # --------------------------------------
+    # INVALID / EXPIRED TOKEN
+    # --------------------------------------
+
+    if payload is None:
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token.",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            }
+        )
+
+    # --------------------------------------
+    # GET USER INFORMATION
+    # --------------------------------------
+
+    student_id = payload.get(
+        "student_id"
+    )
+
+    username = payload.get(
+        "username"
+    )
+
+    # --------------------------------------
+    # VALIDATE TOKEN DATA
+    # --------------------------------------
+
+    if (
+        student_id is None
+        or username is None
+    ):
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token.",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            }
+        )
+
+    # --------------------------------------
+    # RETURN CURRENT USER
+    # --------------------------------------
+
+    return {
+        "student_id": student_id,
+        "username": username
+    }

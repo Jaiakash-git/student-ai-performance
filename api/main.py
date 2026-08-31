@@ -1,8 +1,18 @@
-from fastapi import FastAPI, HTTPException, Depends, Header
+# ==========================================
+# STUDENT AI ASSISTANT - MAIN API
+# ==========================================
+
+from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
 
 from database import get_connection
 
-from fastapi.middleware.cors import CORSMiddleware
+from api.auth import (
+    get_current_user,
+    hash_password,
+    verify_password,
+    create_access_token
+)
 
 from api.schemas import (
     ChatRequest,
@@ -12,15 +22,6 @@ from api.schemas import (
     LoginRequest,
     AuthResponse
 )
-
-from api.auth import (
-    hash_password,
-    verify_password,
-    create_access_token,
-    decode_access_token
-)
-
-from database import get_connection
 
 from agent.agent_core import run_agent
 
@@ -36,6 +37,10 @@ from agent.tools import (
 )
 
 
+# ==========================================
+# FASTAPI APPLICATION
+# ==========================================
+
 app = FastAPI(
     title="Student AI Assistant API",
     description="API for Student AI Assistant",
@@ -49,15 +54,11 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-
     allow_origins=[
         "http://localhost:5173"
     ],
-
     allow_credentials=True,
-
     allow_methods=["*"],
-
     allow_headers=["*"],
 )
 
@@ -68,22 +69,89 @@ app.add_middleware(
 
 @app.get("/")
 def root():
-
     return {
         "message": "Student AI Assistant API is running"
     }
 
 
 # ==========================================
-# HEALTH
+# HEALTH CHECK
 # ==========================================
 
 @app.get("/health")
 def health():
-
     return {
         "status": "healthy"
     }
+
+
+# ==========================================
+# HELPER
+# GET AUTHENTICATED STUDENT NAME
+# ==========================================
+
+def get_authenticated_student_name(
+    current_user: dict
+):
+
+    connection = None
+    cursor = None
+
+    try:
+
+        connection = get_connection()
+
+        cursor = connection.cursor(
+            dictionary=True
+        )
+
+        cursor.execute(
+            """
+            SELECT
+                student_id,
+                name
+            FROM students
+            WHERE student_id = %s
+            """,
+            (
+                current_user["student_id"],
+            )
+        )
+
+        student = cursor.fetchone()
+
+        if student is None:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Student not found."
+            )
+
+        return student["name"]
+
+    except HTTPException:
+
+        raise
+
+    except Exception as error:
+
+        print(
+            f"Student lookup error: {error}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to identify authenticated student."
+        )
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
+
 
 # ==========================================
 # REGISTER
@@ -93,7 +161,9 @@ def health():
     "/auth/register",
     response_model=AuthResponse
 )
-def register(request: RegisterRequest):
+def register(
+    request: RegisterRequest
+):
 
     connection = None
     cursor = None
@@ -101,7 +171,10 @@ def register(request: RegisterRequest):
     try:
 
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+
+        cursor = connection.cursor(
+            dictionary=True
+        )
 
         # --------------------------------------
         # CHECK STUDENT
@@ -109,16 +182,21 @@ def register(request: RegisterRequest):
 
         cursor.execute(
             """
-            SELECT student_id, name
+            SELECT
+                student_id,
+                name
             FROM students
             WHERE student_id = %s
             """,
-            (request.student_id,)
+            (
+                request.student_id,
+            )
         )
 
         student = cursor.fetchone()
 
         if student is None:
+
             raise HTTPException(
                 status_code=404,
                 detail="Student not found."
@@ -130,16 +208,20 @@ def register(request: RegisterRequest):
 
         cursor.execute(
             """
-            SELECT user_id
+            SELECT
+                user_id
             FROM users
             WHERE username = %s
             """,
-            (request.username,)
+            (
+                request.username,
+            )
         )
 
         existing_user = cursor.fetchone()
 
         if existing_user is not None:
+
             raise HTTPException(
                 status_code=409,
                 detail="Username already exists."
@@ -151,16 +233,20 @@ def register(request: RegisterRequest):
 
         cursor.execute(
             """
-            SELECT user_id
+            SELECT
+                user_id
             FROM users
             WHERE student_id = %s
             """,
-            (request.student_id,)
+            (
+                request.student_id,
+            )
         )
 
         existing_student = cursor.fetchone()
 
         if existing_student is not None:
+
             raise HTTPException(
                 status_code=409,
                 detail="This student already has an account."
@@ -197,6 +283,10 @@ def register(request: RegisterRequest):
 
         connection.commit()
 
+        # --------------------------------------
+        # RETURN RESPONSE
+        # --------------------------------------
+
         return AuthResponse(
             message="Registration successful.",
             access_token="",
@@ -206,6 +296,7 @@ def register(request: RegisterRequest):
         )
 
     except HTTPException:
+
         raise
 
     except Exception as error:
@@ -227,6 +318,7 @@ def register(request: RegisterRequest):
         if connection:
             connection.close()
 
+
 # ==========================================
 # LOGIN
 # ==========================================
@@ -235,7 +327,9 @@ def register(request: RegisterRequest):
     "/auth/login",
     response_model=AuthResponse
 )
-def login(request: LoginRequest):
+def login(
+    request: LoginRequest
+):
 
     connection = None
     cursor = None
@@ -243,7 +337,10 @@ def login(request: LoginRequest):
     try:
 
         connection = get_connection()
-        cursor = connection.cursor(dictionary=True)
+
+        cursor = connection.cursor(
+            dictionary=True
+        )
 
         # --------------------------------------
         # FIND USER
@@ -259,12 +356,15 @@ def login(request: LoginRequest):
             FROM users
             WHERE username = %s
             """,
-            (request.username,)
+            (
+                request.username,
+            )
         )
 
         user = cursor.fetchone()
 
         if user is None:
+
             raise HTTPException(
                 status_code=401,
                 detail="Invalid username or password."
@@ -280,13 +380,14 @@ def login(request: LoginRequest):
         )
 
         if not password_valid:
+
             raise HTTPException(
                 status_code=401,
                 detail="Invalid username or password."
             )
 
         # --------------------------------------
-        # CREATE JWT
+        # CREATE JWT TOKEN
         # --------------------------------------
 
         access_token = create_access_token(
@@ -297,6 +398,10 @@ def login(request: LoginRequest):
             }
         )
 
+        # --------------------------------------
+        # RETURN LOGIN RESPONSE
+        # --------------------------------------
+
         return AuthResponse(
             message="Login successful.",
             access_token=access_token,
@@ -306,6 +411,7 @@ def login(request: LoginRequest):
         )
 
     except HTTPException:
+
         raise
 
     except Exception as error:
@@ -336,50 +442,78 @@ def login(request: LoginRequest):
     "/student/{student_name}/dashboard",
     response_model=DashboardResponse
 )
-def dashboard(student_name: str):
+def dashboard(
+    student_name: str,
+    current_user: dict = Depends(
+        get_current_user
+    )
+):
 
     try:
 
-        # ==================================
+        # ======================================
+        # GET AUTHENTICATED STUDENT
+        # ======================================
+
+        authenticated_student_name = (
+            get_authenticated_student_name(
+                current_user
+            )
+        )
+
+        # ======================================
+        # SECURITY CHECK
+        # ======================================
+
+        if (
+            student_name.lower()
+            != authenticated_student_name.lower()
+        ):
+
+            raise HTTPException(
+                status_code=403,
+                detail="You are not authorized to access this student's data."
+            )
+
+        # ======================================
         # GET STUDENT DATA
-        # ==================================
+        # ======================================
 
         average_result = get_average(
-            student_name
+            authenticated_student_name
         )
 
         attendance_result = get_attendance(
-            student_name
+            authenticated_student_name
         )
 
         performance_result = get_performance(
-            student_name
+            authenticated_student_name
         )
 
         risk_result = get_risk(
-            student_name
+            authenticated_student_name
         )
 
         highest_result = get_highest_subject(
-            student_name
+            authenticated_student_name
         )
 
         lowest_result = get_lowest_subject(
-            student_name
+            authenticated_student_name
         )
 
         trend_result = get_trend(
-            student_name
+            authenticated_student_name
         )
 
         recommendation_result = get_recommendation(
-            student_name
+            authenticated_student_name
         )
 
-
-        # ==================================
+        # ======================================
         # CHECK RESULTS
-        # ==================================
+        # ======================================
 
         results = [
             average_result,
@@ -394,7 +528,10 @@ def dashboard(student_name: str):
 
         for result in results:
 
-            if not result.get("success", False):
+            if not result.get(
+                "success",
+                False
+            ):
 
                 raise HTTPException(
                     status_code=404,
@@ -404,22 +541,29 @@ def dashboard(student_name: str):
                     )
                 )
 
-
-        # ==================================
+        # ======================================
         # RETURN DASHBOARD
-        # ==================================
+        # ======================================
 
         return DashboardResponse(
 
-            student_name=student_name,
+            student_name=authenticated_student_name,
 
-            average=average_result["average"],
+            average=average_result[
+                "average"
+            ],
 
-            attendance=attendance_result["attendance"],
+            attendance=attendance_result[
+                "attendance"
+            ],
 
-            performance_status=performance_result["status"],
+            performance_status=performance_result[
+                "status"
+            ],
 
-            risk_level=risk_result["risk_level"],
+            risk_level=risk_result[
+                "risk_level"
+            ],
 
             risk_probability=risk_result[
                 "risk_probability"
@@ -462,11 +606,9 @@ def dashboard(student_name: str):
             ]
         )
 
-
     except HTTPException:
 
         raise
-
 
     except Exception as error:
 
@@ -491,49 +633,62 @@ def dashboard(student_name: str):
     "/chat",
     response_model=ChatResponse
 )
-def chat(request: ChatRequest):
+def chat(
+    request: ChatRequest,
+    current_user: dict = Depends(
+        get_current_user
+    )
+):
 
     try:
 
-        # ==================================
+        # ======================================
+        # GET AUTHENTICATED STUDENT
+        # ======================================
+
+        authenticated_student_name = (
+            get_authenticated_student_name(
+                current_user
+            )
+        )
+
+        # ======================================
         # RUN AI AGENT
-        # ==================================
+        # ======================================
 
         result = run_agent(
 
-            student_name=request.student_name,
+            student_name=authenticated_student_name,
 
             user_input=request.message,
 
             context=request.context
+
         )
 
-
-        # ==================================
+        # ======================================
         # CHECK AGENT RESULT
-        # ==================================
+        # ======================================
 
         if not result["success"]:
 
             return ChatResponse(
-
                 response=result["response"],
-
                 context=result["context"]
             )
 
-
-        # ==================================
+        # ======================================
         # RETURN AGENT RESPONSE
-        # ==================================
+        # ======================================
 
         return ChatResponse(
-
             response=result["response"],
-
             context=result["context"]
         )
 
+    except HTTPException:
+
+        raise
 
     except Exception as error:
 
@@ -542,12 +697,9 @@ def chat(request: ChatRequest):
         )
 
         raise HTTPException(
-
             status_code=500,
-
             detail=(
                 "An internal error occurred "
                 "while processing your request."
             )
         )
-

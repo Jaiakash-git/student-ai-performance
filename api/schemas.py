@@ -12,8 +12,10 @@ class ChatRequest(BaseModel):
         "str_strip_whitespace": True
     }
 
-    student_name: str = Field(min_length=1)
-    message: str = Field(min_length=1)
+    message: str = Field(
+        min_length=1
+    )
+
     context: Optional[dict] = None
 
 
@@ -24,6 +26,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
 
     response: str
+
     context: dict
 
 
@@ -35,26 +38,54 @@ class DashboardResponse(BaseModel):
 
     student_name: str
 
+    # ------------------------------
+    # ACADEMIC
+    # ------------------------------
+
     average: float
+
     attendance: float
 
     performance_status: str
 
+    # ------------------------------
+    # RISK
+    # ------------------------------
+
     risk_level: str
+
     risk_probability: float
 
+    # ------------------------------
+    # SUBJECT PERFORMANCE
+    # ------------------------------
+
     highest_subject: str
+
     highest_mark: float
 
     lowest_subject: str
+
     lowest_mark: float
 
+    # ------------------------------
+    # TREND
+    # ------------------------------
+
     overall_trend: str
+
     average_improvement: float
 
+    # ------------------------------
+    # RECOMMENDATION
+    # ------------------------------
+
     recommendation: str
+
     priority_subject: str
+
     priority_mark: float
+
 
 # ==========================================
 # REGISTER REQUEST
@@ -62,7 +93,13 @@ class DashboardResponse(BaseModel):
 
 class RegisterRequest(BaseModel):
 
-    student_id: int = Field(gt=0)
+    model_config = {
+        "str_strip_whitespace": True
+    }
+
+    student_id: int = Field(
+        gt=0
+    )
 
     username: str = Field(
         min_length=3,
@@ -80,6 +117,10 @@ class RegisterRequest(BaseModel):
 # ==========================================
 
 class LoginRequest(BaseModel):
+
+    model_config = {
+        "str_strip_whitespace": True
+    }
 
     username: str = Field(
         min_length=1,
@@ -107,3 +148,5 @@ class AuthResponse(BaseModel):
     student_id: int
 
     username: str
+
+    student_name: str

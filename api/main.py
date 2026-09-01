@@ -288,11 +288,12 @@ def register(
         # --------------------------------------
 
         return AuthResponse(
-            message="Registration successful.",
-            access_token="",
-            token_type="bearer",
-            student_id=request.student_id,
-            username=request.username
+          message="Registration successful.",
+          access_token="",
+          token_type="bearer",
+          student_id=request.student_id,
+          username=request.username,
+          student_name=student["name"]
         )
 
     except HTTPException:
@@ -364,7 +365,6 @@ def login(
         user = cursor.fetchone()
 
         if user is None:
-
             raise HTTPException(
                 status_code=401,
                 detail="Invalid username or password."
@@ -380,11 +380,36 @@ def login(
         )
 
         if not password_valid:
-
             raise HTTPException(
                 status_code=401,
                 detail="Invalid username or password."
             )
+
+        # --------------------------------------
+        # GET STUDENT NAME
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            SELECT
+                name
+            FROM students
+            WHERE student_id = %s
+            """,
+            (
+                user["student_id"],
+            )
+        )
+
+        student = cursor.fetchone()
+
+        if student is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Student not found."
+            )
+
+        student_name = student["name"]
 
         # --------------------------------------
         # CREATE JWT TOKEN
@@ -407,11 +432,11 @@ def login(
             access_token=access_token,
             token_type="bearer",
             student_id=user["student_id"],
-            username=user["username"]
+            username=user["username"],
+            student_name=student_name
         )
 
     except HTTPException:
-
         raise
 
     except Exception as error:
@@ -432,8 +457,7 @@ def login(
 
         if connection:
             connection.close()
-
-
+            
 # ==========================================
 # DASHBOARD
 # ==========================================
@@ -642,33 +666,17 @@ def chat(
 
     try:
 
-        # ======================================
-        # GET AUTHENTICATED STUDENT
-        # ======================================
-
         authenticated_student_name = (
             get_authenticated_student_name(
                 current_user
             )
         )
 
-        # ======================================
-        # RUN AI AGENT
-        # ======================================
-
         result = run_agent(
-
             student_name=authenticated_student_name,
-
             user_input=request.message,
-
             context=request.context
-
         )
-
-        # ======================================
-        # CHECK AGENT RESULT
-        # ======================================
 
         if not result["success"]:
 
@@ -677,24 +685,17 @@ def chat(
                 context=result["context"]
             )
 
-        # ======================================
-        # RETURN AGENT RESPONSE
-        # ======================================
-
         return ChatResponse(
             response=result["response"],
             context=result["context"]
         )
 
     except HTTPException:
-
         raise
 
     except Exception as error:
 
-        print(
-            f"Chat error: {error}"
-        )
+        print(f"Chat error: {error}")
 
         raise HTTPException(
             status_code=500,

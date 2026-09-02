@@ -55,23 +55,41 @@ function App() {
   const [password, setPassword] = useState("");
   const [studentId, setStudentId] = useState("");
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] =
+    useState(false);
 
-  const [authLoading, setAuthLoading] = useState(false);
-  const [authError, setAuthError] = useState("");
-  const [authSuccess, setAuthSuccess] = useState("");
+  const [authLoading, setAuthLoading] =
+    useState(false);
 
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("student_ai_token")
-  );
+  const [authError, setAuthError] =
+    useState("");
+
+  const [authSuccess, setAuthSuccess] =
+    useState("");
+
+  const [token, setToken] =
+    useState<string | null>(
+      localStorage.getItem("student_ai_token")
+    );
 
   // ========================================
   // STUDENT
   // ========================================
 
-  const [studentName, setStudentName] = useState(
-    localStorage.getItem("student_ai_name") || ""
-  );
+  const [studentName, setStudentName] =
+    useState(
+      localStorage.getItem("student_ai_name") || ""
+    );
+
+  const [savedStudentId, setSavedStudentId] =
+    useState(
+      localStorage.getItem("student_ai_id") || ""
+    );
+
+  const [savedUsername, setSavedUsername] =
+    useState(
+      localStorage.getItem("student_ai_username") || ""
+    );
 
   // ========================================
   // DASHBOARD
@@ -87,13 +105,84 @@ function App() {
     useState("");
 
   // ========================================
+  // NAVIGATION
+  // ========================================
+
+  const [activeSection, setActiveSection] =
+    useState("dashboard");
+
+  const navigateToSection = (
+    section: string,
+    elementId: string
+  ) => {
+    setActiveSection(section);
+
+    setTimeout(() => {
+      document
+        .getElementById(elementId)
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+    }, 50);
+  };
+
+  // ========================================
+  // PROFILE
+  // ========================================
+
+  const [isProfileOpen, setIsProfileOpen] =
+    useState(false);
+
+  const [isChangePasswordOpen, setIsChangePasswordOpen] =
+    useState(false);
+
+  // ========================================
+  // CHANGE PASSWORD
+  // ========================================
+
+  const [currentPassword, setCurrentPassword] =
+    useState("");
+
+  const [newPassword, setNewPassword] =
+    useState("");
+
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
+
+  const [showCurrentPassword, setShowCurrentPassword] =
+    useState(false);
+
+  const [showNewPassword, setShowNewPassword] =
+    useState(false);
+
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
+
+  const [passwordChangeLoading, setPasswordChangeLoading] =
+    useState(false);
+
+  const [passwordChangeError, setPasswordChangeError] =
+    useState("");
+
+  const [passwordChangeSuccess, setPasswordChangeSuccess] =
+    useState("");
+
+  // ========================================
   // CHAT
   // ========================================
 
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [isChatOpen, setIsChatOpen] =
+    useState(false);
+
+  const [message, setMessage] =
+    useState("");
+
+  const [messages, setMessages] =
+    useState<Message[]>([]);
+
+  const [loading, setLoading] =
+    useState(false);
 
   const [context, setContext] =
     useState<AgentContext | null>(null);
@@ -131,12 +220,18 @@ function App() {
   const logout = () => {
     localStorage.removeItem("student_ai_token");
     localStorage.removeItem("student_ai_name");
+    localStorage.removeItem("student_ai_id");
+    localStorage.removeItem("student_ai_username");
 
     setToken(null);
     setStudentName("");
+    setSavedStudentId("");
+    setSavedUsername("");
+
     setDashboard(null);
     setMessages([]);
     setContext(null);
+
     setIsChatOpen(false);
 
     setUsername("");
@@ -145,7 +240,20 @@ function App() {
 
     setAuthError("");
     setAuthSuccess("");
+
     setShowPassword(false);
+
+    setIsProfileOpen(false);
+    setIsChangePasswordOpen(false);
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
+
+    setActiveSection("dashboard");
   };
 
   // ========================================
@@ -190,7 +298,6 @@ function App() {
 
       const authData: AuthResponse = data;
 
-      // Save authentication data
       localStorage.setItem(
         "student_ai_token",
         authData.access_token
@@ -201,11 +308,29 @@ function App() {
         authData.student_name
       );
 
+      localStorage.setItem(
+        "student_ai_id",
+        String(authData.student_id)
+      );
+
+      localStorage.setItem(
+        "student_ai_username",
+        authData.username
+      );
+
       setToken(authData.access_token);
       setStudentName(authData.student_name);
 
+      setSavedStudentId(
+        String(authData.student_id)
+      );
+
+      setSavedUsername(authData.username);
+
       setPassword("");
       setShowPassword(false);
+
+      setActiveSection("dashboard");
 
       setMessages([
         {
@@ -294,7 +419,6 @@ function App() {
       );
 
       setAuthMode("login");
-
       setStudentId("");
       setPassword("");
       setShowPassword(false);
@@ -376,6 +500,145 @@ function App() {
   };
 
   // ========================================
+  // CHANGE PASSWORD
+  // ========================================
+
+  const resetPasswordForm = () => {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
+
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
+  };
+
+  const openChangePassword = () => {
+    resetPasswordForm();
+
+    setIsProfileOpen(false);
+    setIsChangePasswordOpen(true);
+  };
+
+  const closeChangePassword = () => {
+    resetPasswordForm();
+    setIsChangePasswordOpen(false);
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
+
+    if (
+      !currentPassword ||
+      !newPassword ||
+      !confirmPassword
+    ) {
+      setPasswordChangeError(
+        "Please fill in all password fields."
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordChangeError(
+        "New password must be at least 6 characters."
+      );
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordChangeError(
+        "New password and confirmation do not match."
+      );
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setPasswordChangeError(
+        "New password must be different from your current password."
+      );
+      return;
+    }
+
+    if (!token) {
+      setPasswordChangeError(
+        "Your session has expired. Please login again."
+      );
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Unable to change password."
+        );
+      }
+
+      setPasswordChangeSuccess(
+        data.message ||
+          "Password changed successfully."
+      );
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unable to change password.";
+
+      if (
+        errorMessage
+          .toLowerCase()
+          .includes("authenticated") ||
+        errorMessage
+          .toLowerCase()
+          .includes("token")
+      ) {
+        logout();
+        return;
+      }
+
+      setPasswordChangeError(
+        errorMessage
+      );
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
+
+  // ========================================
   // SEND CHAT MESSAGE
   // ========================================
 
@@ -388,7 +651,8 @@ function App() {
       return;
     }
 
-    const userMessage = message.trim();
+    const userMessage =
+      message.trim();
 
     setMessages((prev) => [
       ...prev,
@@ -420,7 +684,8 @@ function App() {
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -517,8 +782,6 @@ function App() {
         <div className="auth-background-shape shape-two" />
 
         <div className="auth-card">
-
-          {/* BRAND */}
           <div className="auth-brand">
             <div className="auth-logo">
               🤖
@@ -532,7 +795,6 @@ function App() {
             </div>
           </div>
 
-          {/* HEADING */}
           <div className="auth-heading">
             <h2>
               {authMode === "login"
@@ -547,7 +809,6 @@ function App() {
             </p>
           </div>
 
-          {/* TABS */}
           <div className="auth-tabs">
             <button
               type="button"
@@ -584,7 +845,6 @@ function App() {
             </button>
           </div>
 
-          {/* ERROR */}
           {authError && (
             <div className="auth-message error">
               <span>⚠️</span>
@@ -592,7 +852,6 @@ function App() {
             </div>
           )}
 
-          {/* SUCCESS */}
           {authSuccess && (
             <div className="auth-message success">
               <span>✓</span>
@@ -600,7 +859,6 @@ function App() {
             </div>
           )}
 
-          {/* STUDENT ID */}
           {authMode === "register" && (
             <div className="form-group">
               <label htmlFor="student-id">
@@ -630,7 +888,6 @@ function App() {
             </div>
           )}
 
-          {/* USERNAME */}
           <div className="form-group">
             <label htmlFor="username">
               Username
@@ -659,7 +916,6 @@ function App() {
             </div>
           </div>
 
-          {/* PASSWORD */}
           <div className="form-group">
             <label htmlFor="password">
               Password
@@ -694,7 +950,6 @@ function App() {
                 disabled={authLoading}
               />
 
-              {/* SHOW / HIDE PASSWORD */}
               <button
                 type="button"
                 className="password-toggle"
@@ -710,12 +965,13 @@ function App() {
                 }
                 disabled={authLoading}
               >
-                {showPassword ? "🙈" : "👁️"}
+                {showPassword
+                  ? "🙈"
+                  : "👁️"}
               </button>
             </div>
           </div>
 
-          {/* SUBMIT */}
           <button
             type="button"
             className="auth-submit"
@@ -738,7 +994,6 @@ function App() {
             )}
           </button>
 
-          {/* FOOTER */}
           <div className="auth-footer">
             {authMode === "login"
               ? "Don't have an account?"
@@ -851,9 +1106,11 @@ function App() {
   return (
     <div className="app-container">
 
-      {/* SIDEBAR */}
-      <aside className="sidebar">
+      {/* ========================================
+          SIDEBAR
+          ======================================== */}
 
+      <aside className="sidebar">
         <div className="brand">
           <div className="brand-icon">
             🤖
@@ -861,6 +1118,7 @@ function App() {
 
           <div>
             <h2>Student AI</h2>
+
             <span>
               Academic Assistant
             </span>
@@ -869,32 +1127,91 @@ function App() {
 
         <nav className="sidebar-nav">
 
-          <div className="nav-item active">
+          {/* DASHBOARD */}
+          <button
+            type="button"
+            className={
+              activeSection === "dashboard"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              navigateToSection(
+                "dashboard",
+                "dashboard-section"
+              )
+            }
+          >
             <span>📊</span>
             Dashboard
-          </div>
+          </button>
 
-          <div className="nav-item">
+          {/* PERFORMANCE */}
+          <button
+            type="button"
+            className={
+              activeSection === "performance"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              navigateToSection(
+                "performance",
+                "performance-section"
+              )
+            }
+          >
             <span>📈</span>
             Performance
-          </div>
+          </button>
 
-          <div className="nav-item">
+          {/* ANALYTICS */}
+          <button
+            type="button"
+            className={
+              activeSection === "analytics"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              navigateToSection(
+                "analytics",
+                "analytics-section"
+              )
+            }
+          >
             <span>🎯</span>
             Analytics
-          </div>
+          </button>
 
-          <div className="nav-item">
+          {/* INSIGHTS */}
+          <button
+            type="button"
+            className={
+              activeSection === "insights"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              navigateToSection(
+                "insights",
+                "insights-section"
+              )
+            }
+          >
             <span>💡</span>
             Insights
-          </div>
-
+          </button>
         </nav>
 
         <div className="sidebar-bottom">
-
-          <div className="student-mini">
-
+          <button
+            type="button"
+            className="student-mini student-mini-button"
+            onClick={() =>
+              setIsProfileOpen(true)
+            }
+          >
             <div className="student-avatar">
               {studentName
                 .charAt(0)
@@ -910,8 +1227,7 @@ function App() {
                 Student
               </span>
             </div>
-
-          </div>
+          </button>
 
           <button
             className="change-student"
@@ -919,342 +1235,66 @@ function App() {
           >
             ↩ Sign Out
           </button>
-
         </div>
       </aside>
 
-      {/* MAIN */}
+      {/* ========================================
+          MAIN
+          ======================================== */}
+
       <main className="dashboard">
 
-        <header className="dashboard-header">
+        {/* ========================================
+            DASHBOARD SECTION
+            ======================================== */}
 
-          <div>
-            <p className="header-label">
-              STUDENT DASHBOARD
-            </p>
-
-            <h1>
-              Welcome back, {studentName} 👋
-            </h1>
-
-            <p className="header-subtitle">
-              Here's your current academic overview.
-            </p>
-          </div>
-
-          <div className="header-profile">
-
-            <div className="profile-avatar">
-              {studentName
-                .charAt(0)
-                .toUpperCase()}
-            </div>
-
+        <section
+          id="dashboard-section"
+          className="dashboard-section dashboard-main-section"
+        >
+          <header className="dashboard-header">
             <div>
-              <strong>
-                {studentName}
-              </strong>
+              <p className="header-label">
+                STUDENT DASHBOARD
+              </p>
 
-              <span>
-                Academic Profile
-              </span>
+              <h1>
+                Welcome back, {studentName} 👋
+              </h1>
+
+              <p className="header-subtitle">
+                Here's your current academic overview.
+              </p>
             </div>
 
-          </div>
-
-        </header>
-
-        {dashboard && (
-          <>
-            {/* STAT CARDS */}
-            <section className="stats-grid">
-
-              <div className="stat-card">
-                <div className="stat-top">
-                  <span>
-                    Average Mark
-                  </span>
-
-                  <div className="stat-icon purple">
-                    📊
-                  </div>
-                </div>
-
-                <div className="stat-value">
-                  {dashboard.average.toFixed(2)}
-                </div>
-
-                <div className="stat-description">
-                  Overall academic average
-                </div>
+            <button
+              type="button"
+              className="header-profile"
+              onClick={() =>
+                setIsProfileOpen(true)
+              }
+            >
+              <div className="profile-avatar">
+                {studentName
+                  .charAt(0)
+                  .toUpperCase()}
               </div>
-
-              <div className="stat-card">
-                <div className="stat-top">
-                  <span>
-                    Attendance
-                  </span>
-
-                  <div className="stat-icon blue">
-                    📅
-                  </div>
-                </div>
-
-                <div className="stat-value">
-                  {dashboard.attendance.toFixed(2)}%
-                </div>
-
-                <div className="stat-description">
-                  Overall attendance
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-top">
-                  <span>
-                    Academic Risk
-                  </span>
-
-                  <div className="stat-icon green">
-                    🛡️
-                  </div>
-                </div>
-
-                <div
-                  className={
-                    dashboard.risk_level
-                      .toLowerCase()
-                      .includes("high")
-                      ? "stat-value risk-high"
-                      : "stat-value risk-low"
-                  }
-                >
-                  {dashboard.risk_level}
-                </div>
-
-                <div className="stat-description">
-                  Risk probability:{" "}
-                  {dashboard.risk_probability.toFixed(2)}%
-                </div>
-              </div>
-
-              <div className="stat-card">
-                <div className="stat-top">
-                  <span>
-                    Performance
-                  </span>
-
-                  <div className="stat-icon orange">
-                    ⭐
-                  </div>
-                </div>
-
-                <div className="stat-value performance-value">
-                  {dashboard.performance_status}
-                </div>
-
-                <div className="stat-description">
-                  Current performance status
-                </div>
-              </div>
-
-            </section>
-
-            {/* MAIN GRID */}
-            <section className="dashboard-grid">
-
-              {/* PERFORMANCE */}
-              <div className="panel performance-panel">
-
-                <div className="panel-header">
-
-                  <div>
-                    <h2>
-                      Academic Overview
-                    </h2>
-
-                    <p>
-                      Your current subject performance
-                    </p>
-                  </div>
-
-                  <span className="panel-badge">
-                    {dashboard.overall_trend}
-                  </span>
-
-                </div>
-
-                <div className="subject-comparison">
-
-                  <div className="subject-card highest">
-
-                    <div className="subject-icon">
-                      🏆
-                    </div>
-
-                    <div>
-                      <span>
-                        Highest Scoring
-                      </span>
-
-                      <h3>
-                        {dashboard.highest_subject}
-                      </h3>
-
-                      <strong>
-                        {dashboard.highest_mark.toFixed(2)}
-                      </strong>
-                    </div>
-
-                  </div>
-
-                  <div className="subject-card lowest">
-
-                    <div className="subject-icon">
-                      📚
-                    </div>
-
-                    <div>
-                      <span>
-                        Priority Subject
-                      </span>
-
-                      <h3>
-                        {dashboard.lowest_subject}
-                      </h3>
-
-                      <strong>
-                        {dashboard.lowest_mark.toFixed(2)}
-                      </strong>
-                    </div>
-
-                  </div>
-
-                </div>
-
-                <div className="trend-section">
-
-                  <div className="trend-header">
-
-                    <div>
-                      <span>
-                        Overall Performance Trend
-                      </span>
-
-                      <h3>
-                        {dashboard.overall_trend}
-                      </h3>
-                    </div>
-
-                    <div className="trend-number">
-                      {dashboard.average_improvement >= 0
-                        ? "+"
-                        : ""}
-                      {dashboard.average_improvement.toFixed(2)}
-                    </div>
-
-                  </div>
-
-                  <div className="trend-bar">
-
-                    <div
-                      className={
-                        dashboard.average_improvement >= 0
-                          ? "trend-progress improving"
-                          : "trend-progress declining"
-                      }
-                      style={{
-                        width: `${Math.min(
-                          Math.max(
-                            Math.abs(
-                              dashboard.average_improvement
-                            ) * 10,
-                            5
-                          ),
-                          100
-                        )}%`,
-                      }}
-                    />
-
-                  </div>
-
-                  <p>
-                    Average improvement across subjects
-                  </p>
-
-                </div>
-
-              </div>
-
-              {/* AI INSIGHT */}
-              <div className="panel insight-panel">
-
-                <div className="panel-header">
-
-                  <div>
-                    <h2>
-                      AI Insight
-                    </h2>
-
-                    <p>
-                      Personalized recommendation
-                    </p>
-                  </div>
-
-                  <div className="ai-small-icon">
-                    🤖
-                  </div>
-
-                </div>
-
-                <div className="recommendation-box">
-
-                  <div className="recommendation-icon">
-                    💡
-                  </div>
-
-                  <p>
-                    {dashboard.recommendation}
-                  </p>
-
-                </div>
-
-                <div className="priority-box">
-
-                  <span>
-                    Priority Subject
-                  </span>
-
-                  <div>
-                    <strong>
-                      {dashboard.priority_subject}
-                    </strong>
-
-                    <span>
-                      {dashboard.priority_mark.toFixed(2)} marks
-                    </span>
-                  </div>
-
-                </div>
-
-                <button
-                  className="ask-ai-button"
-                  onClick={() =>
-                    setIsChatOpen(true)
-                  }
-                >
-                  🤖 Ask AI Assistant
-                </button>
-
-              </div>
-
-            </section>
-
-            {/* SUMMARY */}
-            <section className="summary-panel">
 
               <div>
+                <strong>
+                  {studentName}
+                </strong>
 
+                <span>
+                  Academic Profile
+                </span>
+              </div>
+            </button>
+          </header>
+
+          {dashboard && (
+            <section className="summary-panel">
+              <div>
                 <span className="summary-label">
                   YOUR ACADEMIC SUMMARY
                 </span>
@@ -1281,7 +1321,6 @@ function App() {
                     {dashboard.risk_level}
                   </strong>.
                 </p>
-
               </div>
 
               <button
@@ -1292,14 +1331,674 @@ function App() {
               >
                 Chat with AI →
               </button>
+            </section>
+          )}
+        </section>
 
+        {dashboard && (
+          <>
+            {/* ========================================
+                PERFORMANCE SECTION
+                ======================================== */}
+
+            <section
+              id="performance-section"
+              className="dashboard-section"
+            >
+              <div className="section-title">
+                <span>PERFORMANCE</span>
+                <h2>
+                  Academic Performance
+                </h2>
+                <p>
+                  Understand how you are performing across subjects.
+                </p>
+              </div>
+
+              <div className="panel performance-panel">
+                <div className="panel-header">
+                  <div>
+                    <h2>
+                      Academic Overview
+                    </h2>
+
+                    <p>
+                      Your current subject performance
+                    </p>
+                  </div>
+
+                  <span className="panel-badge">
+                    {dashboard.overall_trend}
+                  </span>
+                </div>
+
+                <div className="subject-comparison">
+
+                  <div className="subject-card highest">
+                    <div className="subject-icon">
+                      🏆
+                    </div>
+
+                    <div>
+                      <span>
+                        Highest Scoring
+                      </span>
+
+                      <h3>
+                        {dashboard.highest_subject}
+                      </h3>
+
+                      <strong>
+                        {dashboard.highest_mark.toFixed(2)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div className="subject-card lowest">
+                    <div className="subject-icon">
+                      📚
+                    </div>
+
+                    <div>
+                      <span>
+                        Priority Subject
+                      </span>
+
+                      <h3>
+                        {dashboard.lowest_subject}
+                      </h3>
+
+                      <strong>
+                        {dashboard.lowest_mark.toFixed(2)}
+                      </strong>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div className="trend-section">
+                  <div className="trend-header">
+                    <div>
+                      <span>
+                        Overall Performance Trend
+                      </span>
+
+                      <h3>
+                        {dashboard.overall_trend}
+                      </h3>
+                    </div>
+
+                    <div className="trend-number">
+                      {dashboard.average_improvement >= 0
+                        ? "+"
+                        : ""}
+                      {dashboard.average_improvement.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="trend-bar">
+                    <div
+                      className={
+                        dashboard.average_improvement >= 0
+                          ? "trend-progress improving"
+                          : "trend-progress declining"
+                      }
+                      style={{
+                        width: `${Math.min(
+                          Math.max(
+                            Math.abs(
+                              dashboard.average_improvement
+                            ) * 10,
+                            5
+                          ),
+                          100
+                        )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <p>
+                    Average improvement across subjects
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            {/* ========================================
+                ANALYTICS SECTION
+                ======================================== */}
+
+            <section
+              id="analytics-section"
+              className="dashboard-section"
+            >
+              <div className="section-title">
+                <span>ANALYTICS</span>
+                <h2>
+                  Academic Analytics
+                </h2>
+                <p>
+                  A quick view of your important academic metrics.
+                </p>
+              </div>
+
+              <div className="stats-grid">
+
+                <div className="stat-card">
+                  <div className="stat-top">
+                    <span>
+                      Average Mark
+                    </span>
+
+                    <div className="stat-icon purple">
+                      📊
+                    </div>
+                  </div>
+
+                  <div className="stat-value">
+                    {dashboard.average.toFixed(2)}
+                  </div>
+
+                  <div className="stat-description">
+                    Overall academic average
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-top">
+                    <span>
+                      Attendance
+                    </span>
+
+                    <div className="stat-icon blue">
+                      📅
+                    </div>
+                  </div>
+
+                  <div className="stat-value">
+                    {dashboard.attendance.toFixed(2)}%
+                  </div>
+
+                  <div className="stat-description">
+                    Overall attendance
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-top">
+                    <span>
+                      Academic Risk
+                    </span>
+
+                    <div className="stat-icon green">
+                      🛡️
+                    </div>
+                  </div>
+
+                  <div
+                    className={
+                      dashboard.risk_level
+                        .toLowerCase()
+                        .includes("high")
+                        ? "stat-value risk-high"
+                        : "stat-value risk-low"
+                    }
+                  >
+                    {dashboard.risk_level}
+                  </div>
+
+                  <div className="stat-description">
+                    Risk probability:{" "}
+                    {dashboard.risk_probability.toFixed(2)}%
+                  </div>
+                </div>
+
+                <div className="stat-card">
+                  <div className="stat-top">
+                    <span>
+                      Performance
+                    </span>
+
+                    <div className="stat-icon orange">
+                      ⭐
+                    </div>
+                  </div>
+
+                  <div className="stat-value performance-value">
+                    {dashboard.performance_status}
+                  </div>
+
+                  <div className="stat-description">
+                    Current performance status
+                  </div>
+                </div>
+
+              </div>
+            </section>
+
+            {/* ========================================
+                INSIGHTS SECTION
+                ======================================== */}
+
+            <section
+              id="insights-section"
+              className="dashboard-section"
+            >
+              <div className="section-title">
+                <span>INSIGHTS</span>
+                <h2>
+                  AI-Powered Insights
+                </h2>
+                <p>
+                  Personalized guidance based on your academic data.
+                </p>
+              </div>
+
+              <div className="panel insight-panel">
+
+                <div className="panel-header">
+                  <div>
+                    <h2>
+                      AI Insight
+                    </h2>
+
+                    <p>
+                      Personalized recommendation
+                    </p>
+                  </div>
+
+                  <div className="ai-small-icon">
+                    🤖
+                  </div>
+                </div>
+
+                <div className="recommendation-box">
+                  <div className="recommendation-icon">
+                    💡
+                  </div>
+
+                  <p>
+                    {dashboard.recommendation}
+                  </p>
+                </div>
+
+                <div className="priority-box">
+                  <span>
+                    Priority Subject
+                  </span>
+
+                  <div>
+                    <strong>
+                      {dashboard.priority_subject}
+                    </strong>
+
+                    <span>
+                      {dashboard.priority_mark.toFixed(2)} marks
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  className="ask-ai-button"
+                  onClick={() =>
+                    setIsChatOpen(true)
+                  }
+                >
+                  🤖 Ask AI Assistant
+                </button>
+
+              </div>
             </section>
           </>
         )}
-
       </main>
 
-      {/* FLOATING AI */}
+      {/* ========================================
+          PROFILE MODAL
+          ======================================== */}
+
+      {isProfileOpen && (
+        <div
+          className="modal-overlay"
+          onClick={() =>
+            setIsProfileOpen(false)
+          }
+        >
+          <div
+            className="profile-modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="modal-header">
+              <div>
+                <h2>
+                  Academic Profile
+                </h2>
+
+                <p>
+                  Your account information
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() =>
+                  setIsProfileOpen(false)
+                }
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="profile-main">
+              <div className="profile-large-avatar">
+                {studentName
+                  .charAt(0)
+                  .toUpperCase()}
+              </div>
+
+              <div>
+                <h3>
+                  {studentName}
+                </h3>
+
+                <span>
+                  Student Account
+                </span>
+              </div>
+            </div>
+
+            <div className="profile-details">
+
+              <div className="profile-detail-item">
+                <span>
+                  🎓 Student ID
+                </span>
+
+                <strong>
+                  {savedStudentId ||
+                    "Not available"}
+                </strong>
+              </div>
+
+              <div className="profile-detail-item">
+                <span>
+                  👤 Username
+                </span>
+
+                <strong>
+                  {savedUsername ||
+                    "Not available"}
+                </strong>
+              </div>
+
+              <div className="profile-detail-item">
+                <span>
+                  🧑‍🎓 Account Type
+                </span>
+
+                <strong>
+                  Student
+                </strong>
+              </div>
+
+            </div>
+
+            <div className="profile-actions">
+              <button
+                type="button"
+                className="change-password-button"
+                onClick={openChangePassword}
+              >
+                🔒 Change Password
+              </button>
+
+              <button
+                type="button"
+                className="profile-close-button"
+                onClick={() =>
+                  setIsProfileOpen(false)
+                }
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================
+          CHANGE PASSWORD MODAL
+          ======================================== */}
+
+      {isChangePasswordOpen && (
+        <div
+          className="modal-overlay"
+          onClick={closeChangePassword}
+        >
+          <div
+            className="password-modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="modal-header">
+              <div>
+                <h2>
+                  Change Password
+                </h2>
+
+                <p>
+                  Keep your Student AI account secure.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="modal-close"
+                onClick={closeChangePassword}
+              >
+                ✕
+              </button>
+            </div>
+
+            {passwordChangeError && (
+              <div className="password-message error">
+                <span>⚠️</span>
+                {passwordChangeError}
+              </div>
+            )}
+
+            {passwordChangeSuccess && (
+              <div className="password-message success">
+                <span>✓</span>
+                {passwordChangeSuccess}
+              </div>
+            )}
+
+            <div className="password-form">
+
+              <div className="form-group">
+                <label>
+                  Current Password
+                </label>
+
+                <div className="input-wrapper password-wrapper">
+                  <span>🔒</span>
+
+                  <input
+                    type={
+                      showCurrentPassword
+                        ? "text"
+                        : "password"
+                    }
+                    placeholder="Enter current password"
+                    value={currentPassword}
+                    onChange={(event) =>
+                      setCurrentPassword(
+                        event.target.value
+                      )
+                    }
+                    disabled={
+                      passwordChangeLoading
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() =>
+                      setShowCurrentPassword(
+                        (prev) => !prev
+                      )
+                    }
+                    disabled={
+                      passwordChangeLoading
+                    }
+                  >
+                    {showCurrentPassword
+                      ? "🙈"
+                      : "👁️"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  New Password
+                </label>
+
+                <div className="input-wrapper password-wrapper">
+                  <span>🔑</span>
+
+                  <input
+                    type={
+                      showNewPassword
+                        ? "text"
+                        : "password"
+                    }
+                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(event) =>
+                      setNewPassword(
+                        event.target.value
+                      )
+                    }
+                    disabled={
+                      passwordChangeLoading
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() =>
+                      setShowNewPassword(
+                        (prev) => !prev
+                      )
+                    }
+                    disabled={
+                      passwordChangeLoading
+                    }
+                  >
+                    {showNewPassword
+                      ? "🙈"
+                      : "👁️"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label>
+                  Confirm New Password
+                </label>
+
+                <div className="input-wrapper password-wrapper">
+                  <span>🔐</span>
+
+                  <input
+                    type={
+                      showConfirmPassword
+                        ? "text"
+                        : "password"
+                    }
+                    placeholder="Confirm new password"
+                    value={confirmPassword}
+                    onChange={(event) =>
+                      setConfirmPassword(
+                        event.target.value
+                      )
+                    }
+                    disabled={
+                      passwordChangeLoading
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() =>
+                      setShowConfirmPassword(
+                        (prev) => !prev
+                      )
+                    }
+                    disabled={
+                      passwordChangeLoading
+                    }
+                  >
+                    {showConfirmPassword
+                      ? "🙈"
+                      : "👁️"}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            <div className="password-modal-actions">
+
+              <button
+                type="button"
+                className="profile-close-button"
+                onClick={closeChangePassword}
+                disabled={
+                  passwordChangeLoading
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="change-password-button"
+                onClick={
+                  handleChangePassword
+                }
+                disabled={
+                  passwordChangeLoading
+                }
+              >
+                {passwordChangeLoading ? (
+                  <>
+                    <span className="button-spinner" />
+                    Updating...
+                  </>
+                ) : (
+                  "🔒 Update Password"
+                )}
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================
+          FLOATING AI
+          ======================================== */}
+
       {!isChatOpen && (
         <button
           className="floating-ai-button"
@@ -1317,7 +2016,10 @@ function App() {
         </button>
       )}
 
-      {/* CHAT */}
+      {/* ========================================
+          CHAT
+          ======================================== */}
+
       {isChatOpen && (
         <>
           <div
@@ -1330,7 +2032,6 @@ function App() {
           <aside className="chat-panel">
 
             <div className="chat-panel-header">
-
               <div className="chat-title">
 
                 <div className="chat-avatar">
@@ -1357,7 +2058,6 @@ function App() {
               >
                 ✕
               </button>
-
             </div>
 
             <div className="chat-messages">
@@ -1386,7 +2086,6 @@ function App() {
               )}
 
               <div ref={chatEndRef} />
-
             </div>
 
             <div className="chat-input-area">
@@ -1400,7 +2099,9 @@ function App() {
                     event.target.value
                   )
                 }
-                onKeyDown={handleChatKeyDown}
+                onKeyDown={
+                  handleChatKeyDown
+                }
                 disabled={loading}
               />
 
@@ -1415,7 +2116,6 @@ function App() {
               </button>
 
             </div>
-
           </aside>
         </>
       )}

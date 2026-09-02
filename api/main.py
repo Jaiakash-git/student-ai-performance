@@ -20,6 +20,7 @@ from api.schemas import (
     DashboardResponse,
     RegisterRequest,
     LoginRequest,
+    ChangePasswordRequest,
     AuthResponse
 )
 
@@ -448,6 +449,145 @@ def login(
         raise HTTPException(
             status_code=500,
             detail="Login failed."
+        )
+
+    finally:
+
+        if cursor:
+            cursor.close()
+
+        if connection:
+            connection.close()
+
+# ==========================================
+# CHANGE PASSWORD
+# ==========================================
+
+@app.post("/auth/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    current_user: dict = Depends(
+        get_current_user
+    )
+):
+
+    connection = None
+    cursor = None
+
+    try:
+
+        connection = get_connection()
+
+        cursor = connection.cursor(
+            dictionary=True
+        )
+
+        # --------------------------------------
+        # GET CURRENT USER
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            SELECT
+                user_id,
+                password_hash
+            FROM users
+            WHERE student_id = %s
+            """,
+            (
+                current_user["student_id"],
+            )
+        )
+
+        user = cursor.fetchone()
+
+        if user is None:
+
+            raise HTTPException(
+                status_code=404,
+                detail="User account not found."
+            )
+
+        # --------------------------------------
+        # VERIFY CURRENT PASSWORD
+        # --------------------------------------
+
+        password_valid = verify_password(
+            request.current_password,
+            user["password_hash"]
+        )
+
+        if not password_valid:
+
+            raise HTTPException(
+                status_code=401,
+                detail="Current password is incorrect."
+            )
+
+        # --------------------------------------
+        # CHECK SAME PASSWORD
+        # --------------------------------------
+
+        if verify_password(
+            request.new_password,
+            user["password_hash"]
+        ):
+
+            raise HTTPException(
+                status_code=400,
+                detail="New password must be different from the current password."
+            )
+
+        # --------------------------------------
+        # HASH NEW PASSWORD
+        # --------------------------------------
+
+        new_password_hash = hash_password(
+            request.new_password
+        )
+
+        # --------------------------------------
+        # UPDATE PASSWORD
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            UPDATE users
+            SET password_hash = %s
+            WHERE user_id = %s
+            """,
+            (
+                new_password_hash,
+                user["user_id"]
+            )
+        )
+
+        connection.commit()
+
+        # --------------------------------------
+        # SUCCESS
+        # --------------------------------------
+
+        return {
+            "message": "Password changed successfully."
+        }
+
+    except HTTPException:
+
+        raise
+
+    except Exception as error:
+
+        if connection:
+            connection.rollback()
+
+        print(
+            f"Change password error: {error}"
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to change password."
         )
 
     finally:

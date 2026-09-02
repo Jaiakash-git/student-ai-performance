@@ -41,6 +41,17 @@ interface AuthResponse {
   student_name: string;
 }
 
+type AuthMode =
+  | "login"
+  | "register"
+  | "forgot"
+  | "verify-email";
+
+type ForgotStep =
+  | "request"
+  | "verify"
+  | "reset";
+
 const API_URL = "http://127.0.0.1:8000";
 
 function App() {
@@ -49,13 +60,33 @@ function App() {
   // ========================================
 
   const [authMode, setAuthMode] =
-    useState<"login" | "register">("login");
+    useState<AuthMode>("login");
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [studentId, setStudentId] = useState("");
+  const [forgotStep, setForgotStep] =
+    useState<ForgotStep>("request");
+
+  const [username, setUsername] =
+    useState("");
+
+  const [password, setPassword] =
+    useState("");
+
+  const [studentId, setStudentId] =
+    useState("");
+
+  const [email, setEmail] =
+    useState("");
+
+  const [confirmRegisterPassword, setConfirmRegisterPassword] =
+    useState("");
 
   const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [showConfirmRegisterPassword, setShowConfirmRegisterPassword] =
+    useState(false);
+
+  const [showForgotPasswordLink, setShowForgotPasswordLink] =
     useState(false);
 
   const [authLoading, setAuthLoading] =
@@ -66,6 +97,48 @@ function App() {
 
   const [authSuccess, setAuthSuccess] =
     useState("");
+
+  // ========================================
+  // FORGOT PASSWORD
+  // ========================================
+
+  const [forgotUsername, setForgotUsername] =
+    useState("");
+
+  const [forgotEmail, setForgotEmail] =
+    useState("");
+
+  const [forgotCode, setForgotCode] =
+    useState("");
+
+  const [resetPassword, setResetPassword] =
+    useState("");
+
+  const [confirmResetPassword, setConfirmResetPassword] =
+    useState("");
+
+  const [showResetPassword, setShowResetPassword] =
+    useState(false);
+
+  const [showConfirmResetPassword, setShowConfirmResetPassword] =
+    useState(false);
+
+  // ========================================
+  // EMAIL VERIFICATION
+  // ========================================
+
+  const [verificationUsername, setVerificationUsername] =
+    useState("");
+
+  const [verificationEmail, setVerificationEmail] =
+    useState("");
+
+  const [verificationCode, setVerificationCode] =
+    useState("");
+
+  // ========================================
+  // AUTH TOKEN
+  // ========================================
 
   const [token, setToken] =
     useState<string | null>(
@@ -214,6 +287,64 @@ function App() {
   }, [messages, loading, isChatOpen]);
 
   // ========================================
+  // RESET AUTH FLOW
+  // ========================================
+
+  const resetAuthFlow = () => {
+    setForgotStep("request");
+
+    setForgotUsername("");
+    setForgotEmail("");
+    setForgotCode("");
+    setResetPassword("");
+    setConfirmResetPassword("");
+
+    setVerificationUsername("");
+    setVerificationEmail("");
+    setVerificationCode("");
+
+    setEmail("");
+    setConfirmRegisterPassword("");
+
+    setShowPassword(false);
+    setShowConfirmRegisterPassword(false);
+    setShowResetPassword(false);
+    setShowConfirmResetPassword(false);
+
+    setShowForgotPasswordLink(false);
+
+    setAuthError("");
+    setAuthSuccess("");
+    setAuthLoading(false);
+  };
+
+  // ========================================
+  // SWITCH AUTH MODE
+  // ========================================
+
+  const switchAuthMode = (
+    mode: AuthMode
+  ) => {
+    setAuthMode(mode);
+
+    if (mode !== "forgot") {
+      setForgotStep("request");
+    }
+
+    if (mode !== "login") {
+      setShowForgotPasswordLink(false);
+    }
+
+    setAuthError("");
+    setAuthSuccess("");
+
+    setShowPassword(false);
+    setShowConfirmRegisterPassword(false);
+    setShowResetPassword(false);
+    setShowConfirmResetPassword(false);
+  };
+
+  // ========================================
   // LOGOUT
   // ========================================
 
@@ -229,6 +360,8 @@ function App() {
     setSavedUsername("");
 
     setDashboard(null);
+    setDashboardError("");
+
     setMessages([]);
     setContext(null);
 
@@ -237,11 +370,12 @@ function App() {
     setUsername("");
     setPassword("");
     setStudentId("");
+    setEmail("");
+    setConfirmRegisterPassword("");
 
-    setAuthError("");
-    setAuthSuccess("");
+    resetAuthFlow();
 
-    setShowPassword(false);
+    setAuthMode("login");
 
     setIsProfileOpen(false);
     setIsChangePasswordOpen(false);
@@ -290,6 +424,8 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
+        setShowForgotPasswordLink(true);
+
         throw new Error(
           data.detail ||
             "Invalid username or password."
@@ -297,6 +433,8 @@ function App() {
       }
 
       const authData: AuthResponse = data;
+
+      setShowForgotPasswordLink(false);
 
       localStorage.setItem(
         "student_ai_token",
@@ -364,7 +502,9 @@ function App() {
     if (
       !studentId.trim() ||
       !username.trim() ||
-      !password.trim()
+      !email.trim() ||
+      !password.trim() ||
+      !confirmRegisterPassword.trim()
     ) {
       setAuthError(
         "Please fill in all fields."
@@ -385,6 +525,37 @@ function App() {
       return;
     }
 
+    const normalizedEmail =
+      email.trim().toLowerCase();
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+        normalizedEmail
+      )
+    ) {
+      setAuthError(
+        "Please enter a valid email address."
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      setAuthError(
+        "Password must be at least 6 characters."
+      );
+      return;
+    }
+
+    if (
+      password !==
+      confirmRegisterPassword
+    ) {
+      setAuthError(
+        "Password and confirmation do not match."
+      );
+      return;
+    }
+
     setAuthLoading(true);
     setAuthError("");
     setAuthSuccess("");
@@ -400,6 +571,7 @@ function App() {
           body: JSON.stringify({
             student_id: numericStudentId,
             username: username.trim(),
+            email: normalizedEmail,
             password,
           }),
         }
@@ -419,9 +591,15 @@ function App() {
       );
 
       setAuthMode("login");
+
       setStudentId("");
+      setEmail("");
       setPassword("");
+      setConfirmRegisterPassword("");
+
       setShowPassword(false);
+      setShowConfirmRegisterPassword(false);
+      setShowForgotPasswordLink(false);
     } catch (error) {
       console.error(error);
 
@@ -434,6 +612,399 @@ function App() {
       setAuthLoading(false);
     }
   };
+
+  // ========================================
+  // SEND EMAIL VERIFICATION
+  // ========================================
+
+  const handleSendEmailVerification =
+    async () => {
+      if (
+        !verificationUsername.trim() ||
+        !verificationEmail.trim()
+      ) {
+        setAuthError(
+          "Please enter your username and email."
+        );
+        return;
+      }
+
+      setAuthLoading(true);
+      setAuthError("");
+      setAuthSuccess("");
+
+      try {
+        const response = await fetch(
+          `${API_URL}/auth/send-email-verification`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username:
+                verificationUsername.trim(),
+              email:
+                verificationEmail.trim(),
+            }),
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "Unable to send verification code."
+          );
+        }
+
+        setAuthSuccess(
+          "If the account details are valid, a verification code has been sent to your email."
+        );
+
+        setVerificationCode("");
+      } catch (error) {
+        console.error(error);
+
+        setAuthError(
+          error instanceof Error
+            ? error.message
+            : "Unable to send verification code."
+        );
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+  // ========================================
+  // VERIFY EMAIL
+  // ========================================
+
+  const handleVerifyEmail = async () => {
+    if (
+      !verificationUsername.trim() ||
+      !verificationCode.trim()
+    ) {
+      setAuthError(
+        "Please enter your username and verification code."
+      );
+      return;
+    }
+
+    if (
+      !/^\d{6}$/.test(
+        verificationCode.trim()
+      )
+    ) {
+      setAuthError(
+        "Verification code must be 6 digits."
+      );
+      return;
+    }
+
+    setAuthLoading(true);
+    setAuthError("");
+    setAuthSuccess("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/verify-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username:
+              verificationUsername.trim(),
+            verification_code:
+              verificationCode.trim(),
+          }),
+        }
+      );
+
+      const data =
+        await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Invalid or expired verification code."
+        );
+      }
+
+      setAuthMode("login");
+
+      setUsername(
+        verificationUsername.trim()
+      );
+
+      setVerificationUsername("");
+      setVerificationEmail("");
+      setVerificationCode("");
+
+      setAuthSuccess(
+        "Email verified successfully! You can now login and use password recovery."
+      );
+    } catch (error) {
+      console.error(error);
+
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : "Unable to verify email."
+      );
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // ========================================
+  // FORGOT PASSWORD - REQUEST CODE
+  // ========================================
+
+  const handleForgotPassword =
+    async () => {
+      if (
+        !forgotUsername.trim() ||
+        !forgotEmail.trim()
+      ) {
+        setAuthError(
+          "Please enter your username and registered email."
+        );
+        return;
+      }
+
+      setAuthLoading(true);
+      setAuthError("");
+      setAuthSuccess("");
+
+      try {
+        const response = await fetch(
+          `${API_URL}/auth/forgot-password`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username:
+                forgotUsername.trim(),
+              email:
+                forgotEmail.trim(),
+            }),
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "Unable to process password recovery."
+          );
+        }
+
+        setForgotStep("verify");
+
+        setAuthSuccess(
+          "If the account details are valid, a verification code has been sent to your email."
+        );
+      } catch (error) {
+        console.error(error);
+
+        setAuthError(
+          error instanceof Error
+            ? error.message
+            : "Unable to process password recovery."
+        );
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+  // ========================================
+  // VERIFY RESET CODE
+  // ========================================
+
+  const handleVerifyResetCode =
+    async () => {
+      if (
+        !forgotUsername.trim() ||
+        !forgotCode.trim()
+      ) {
+        setAuthError(
+          "Please enter your username and verification code."
+        );
+        return;
+      }
+
+      if (
+        !/^\d{6}$/.test(
+          forgotCode.trim()
+        )
+      ) {
+        setAuthError(
+          "Verification code must be 6 digits."
+        );
+        return;
+      }
+
+      setAuthLoading(true);
+      setAuthError("");
+      setAuthSuccess("");
+
+      try {
+        const response = await fetch(
+          `${API_URL}/auth/verify-reset-code`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username:
+                forgotUsername.trim(),
+              verification_code:
+                forgotCode.trim(),
+            }),
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "Invalid or expired verification code."
+          );
+        }
+
+        setForgotStep("reset");
+
+        setAuthSuccess(
+          "Code verified. You can now create a new password."
+        );
+      } catch (error) {
+        console.error(error);
+
+        setAuthError(
+          error instanceof Error
+            ? error.message
+            : "Unable to verify reset code."
+        );
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+  // ========================================
+  // RESET PASSWORD
+  // ========================================
+
+  const handleResetPassword =
+    async () => {
+      setAuthError("");
+      setAuthSuccess("");
+
+      if (
+        !forgotUsername.trim() ||
+        !forgotCode.trim() ||
+        !resetPassword ||
+        !confirmResetPassword
+      ) {
+        setAuthError(
+          "Please fill in all fields."
+        );
+        return;
+      }
+
+      if (resetPassword.length < 6) {
+        setAuthError(
+          "New password must be at least 6 characters."
+        );
+        return;
+      }
+
+      if (
+        resetPassword !==
+        confirmResetPassword
+      ) {
+        setAuthError(
+          "New password and confirmation do not match."
+        );
+        return;
+      }
+
+      setAuthLoading(true);
+
+      try {
+        const response = await fetch(
+          `${API_URL}/auth/reset-password`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              username:
+                forgotUsername.trim(),
+              verification_code:
+                forgotCode.trim(),
+              new_password:
+                resetPassword,
+            }),
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "Unable to reset password."
+          );
+        }
+
+        setAuthMode("login");
+        setForgotStep("request");
+
+        setUsername(
+          forgotUsername.trim()
+        );
+
+        setPassword("");
+
+        setForgotUsername("");
+        setForgotEmail("");
+        setForgotCode("");
+        setResetPassword("");
+        setConfirmResetPassword("");
+
+        setShowResetPassword(false);
+        setShowConfirmResetPassword(false);
+        setShowForgotPasswordLink(false);
+
+        setAuthSuccess(
+          "Password reset successfully! You can now login with your new password."
+        );
+      } catch (error) {
+        console.error(error);
+
+        setAuthError(
+          error instanceof Error
+            ? error.message
+            : "Unable to reset password."
+        );
+      } finally {
+        setAuthLoading(false);
+      }
+    };
 
   // ========================================
   // LOAD DASHBOARD
@@ -453,12 +1024,14 @@ function App() {
         )}/dashboard`,
         {
           headers: {
-            Authorization: `Bearer ${authToken}`,
+            Authorization:
+              `Bearer ${authToken}`,
           },
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -528,115 +1101,127 @@ function App() {
     setIsChangePasswordOpen(false);
   };
 
-  const handleChangePassword = async () => {
-    setPasswordChangeError("");
-    setPasswordChangeSuccess("");
-
-    if (
-      !currentPassword ||
-      !newPassword ||
-      !confirmPassword
-    ) {
-      setPasswordChangeError(
-        "Please fill in all password fields."
-      );
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setPasswordChangeError(
-        "New password must be at least 6 characters."
-      );
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordChangeError(
-        "New password and confirmation do not match."
-      );
-      return;
-    }
-
-    if (currentPassword === newPassword) {
-      setPasswordChangeError(
-        "New password must be different from your current password."
-      );
-      return;
-    }
-
-    if (!token) {
-      setPasswordChangeError(
-        "Your session has expired. Please login again."
-      );
-      return;
-    }
-
-    setPasswordChangeLoading(true);
-
-    try {
-      const response = await fetch(
-        `${API_URL}/auth/change-password`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            current_password: currentPassword,
-            new_password: newPassword,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.detail ||
-            "Unable to change password."
-        );
-      }
-
-      setPasswordChangeSuccess(
-        data.message ||
-          "Password changed successfully."
-      );
-
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-
-      setShowCurrentPassword(false);
-      setShowNewPassword(false);
-      setShowConfirmPassword(false);
-    } catch (error) {
-      console.error(error);
-
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Unable to change password.";
+  const handleChangePassword =
+    async () => {
+      setPasswordChangeError("");
+      setPasswordChangeSuccess("");
 
       if (
-        errorMessage
-          .toLowerCase()
-          .includes("authenticated") ||
-        errorMessage
-          .toLowerCase()
-          .includes("token")
+        !currentPassword ||
+        !newPassword ||
+        !confirmPassword
       ) {
-        logout();
+        setPasswordChangeError(
+          "Please fill in all password fields."
+        );
         return;
       }
 
-      setPasswordChangeError(
-        errorMessage
-      );
-    } finally {
-      setPasswordChangeLoading(false);
-    }
-  };
+      if (newPassword.length < 6) {
+        setPasswordChangeError(
+          "New password must be at least 6 characters."
+        );
+        return;
+      }
+
+      if (
+        newPassword !==
+        confirmPassword
+      ) {
+        setPasswordChangeError(
+          "New password and confirmation do not match."
+        );
+        return;
+      }
+
+      if (
+        currentPassword ===
+        newPassword
+      ) {
+        setPasswordChangeError(
+          "New password must be different from your current password."
+        );
+        return;
+      }
+
+      if (!token) {
+        setPasswordChangeError(
+          "Your session has expired. Please login again."
+        );
+        return;
+      }
+
+      setPasswordChangeLoading(true);
+
+      try {
+        const response = await fetch(
+          `${API_URL}/auth/change-password`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+              Authorization:
+                `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              current_password:
+                currentPassword,
+              new_password:
+                newPassword,
+            }),
+          }
+        );
+
+        const data =
+          await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "Unable to change password."
+          );
+        }
+
+        setPasswordChangeSuccess(
+          data.message ||
+            "Password changed successfully."
+        );
+
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+
+        setShowCurrentPassword(false);
+        setShowNewPassword(false);
+        setShowConfirmPassword(false);
+      } catch (error) {
+        console.error(error);
+
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Unable to change password.";
+
+        if (
+          errorMessage
+            .toLowerCase()
+            .includes("authenticated") ||
+          errorMessage
+            .toLowerCase()
+            .includes("token")
+        ) {
+          logout();
+          return;
+        }
+
+        setPasswordChangeError(
+          errorMessage
+        );
+      } finally {
+        setPasswordChangeLoading(false);
+      }
+    };
 
   // ========================================
   // SEND CHAT MESSAGE
@@ -677,7 +1262,8 @@ function App() {
               `Bearer ${token}`,
           },
           body: JSON.stringify({
-            student_name: studentName,
+            student_name:
+              studentName,
             message: userMessage,
             context: context,
           }),
@@ -756,7 +1342,9 @@ function App() {
 
       if (authMode === "login") {
         handleLogin();
-      } else {
+      } else if (
+        authMode === "register"
+      ) {
         handleRegister();
       }
     }
@@ -782,6 +1370,11 @@ function App() {
         <div className="auth-background-shape shape-two" />
 
         <div className="auth-card">
+
+          {/* ====================================
+              BRAND
+              ==================================== */}
+
           <div className="auth-brand">
             <div className="auth-logo">
               🤖
@@ -795,229 +1388,1087 @@ function App() {
             </div>
           </div>
 
-          <div className="auth-heading">
-            <h2>
-              {authMode === "login"
-                ? "Welcome back"
-                : "Create your account"}
-            </h2>
+          {/* ====================================
+              LOGIN / REGISTER
+              ==================================== */}
 
-            <p>
-              {authMode === "login"
-                ? "Sign in to access your academic dashboard."
-                : "Create your account to get started with Student AI."}
-            </p>
-          </div>
+          {(authMode === "login" ||
+            authMode === "register") && (
+            <>
+              <div className="auth-heading">
+                <h2>
+                  {authMode === "login"
+                    ? "Welcome back"
+                    : "Create your account"}
+                </h2>
 
-          <div className="auth-tabs">
-            <button
-              type="button"
-              className={
-                authMode === "login"
-                  ? "auth-tab active"
-                  : "auth-tab"
-              }
-              onClick={() => {
-                setAuthMode("login");
-                setAuthError("");
-                setAuthSuccess("");
-                setShowPassword(false);
-              }}
-            >
-              Login
-            </button>
+                <p>
+                  {authMode === "login"
+                    ? "Sign in to access your academic dashboard."
+                    : "Create your account to get started with Student AI."}
+                </p>
+              </div>
 
-            <button
-              type="button"
-              className={
-                authMode === "register"
-                  ? "auth-tab active"
-                  : "auth-tab"
-              }
-              onClick={() => {
-                setAuthMode("register");
-                setAuthError("");
-                setAuthSuccess("");
-                setShowPassword(false);
-              }}
-            >
-              Register
-            </button>
-          </div>
+              <div className="auth-tabs">
+                <button
+                  type="button"
+                  className={
+                    authMode === "login"
+                      ? "auth-tab active"
+                      : "auth-tab"
+                  }
+                  onClick={() => {
+                    switchAuthMode(
+                      "login"
+                    );
+                  }}
+                >
+                  Login
+                </button>
+
+                <button
+                  type="button"
+                  className={
+                    authMode ===
+                    "register"
+                      ? "auth-tab active"
+                      : "auth-tab"
+                  }
+                  onClick={() => {
+                    switchAuthMode(
+                      "register"
+                    );
+                  }}
+                >
+                  Register
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ====================================
+              FORGOT PASSWORD HEADING
+              ==================================== */}
+
+          {authMode === "forgot" && (
+            <div className="auth-heading">
+              <h2>
+                {forgotStep ===
+                "request"
+                  ? "Forgot your password?"
+                  : forgotStep ===
+                    "verify"
+                    ? "Verify your code"
+                    : "Create a new password"}
+              </h2>
+
+              <p>
+                {forgotStep ===
+                "request"
+                  ? "Enter your username and registered email to recover your account."
+                  : forgotStep ===
+                    "verify"
+                    ? "Enter the 6-digit verification code sent to your email."
+                    : "Choose a new password for your Student AI account."}
+              </p>
+            </div>
+          )}
+
+          {/* ====================================
+              EMAIL VERIFICATION HEADING
+              ==================================== */}
+
+          {authMode ===
+            "verify-email" && (
+            <div className="auth-heading">
+              <h2>
+                Verify your email
+              </h2>
+
+              <p>
+                Verify your email address to enable secure password recovery.
+              </p>
+            </div>
+          )}
+
+          {/* ====================================
+              MESSAGES
+              ==================================== */}
 
           {authError && (
             <div className="auth-message error">
               <span>⚠️</span>
-              {authError}
+              <span>{authError}</span>
             </div>
           )}
 
           {authSuccess && (
             <div className="auth-message success">
               <span>✓</span>
-              {authSuccess}
+              <span>{authSuccess}</span>
             </div>
           )}
 
-          {authMode === "register" && (
-            <div className="form-group">
-              <label htmlFor="student-id">
-                Student ID
-              </label>
+          {/* ====================================
+              LOGIN
+              ==================================== */}
 
-              <div className="input-wrapper">
-                <span>🎓</span>
+          {authMode === "login" && (
+            <>
+              <div className="form-group">
+                <label htmlFor="username">
+                  Username
+                </label>
 
-                <input
-                  id="student-id"
-                  ref={studentIdRef}
-                  type="number"
-                  placeholder="Enter your student ID"
-                  value={studentId}
-                  onChange={(event) =>
-                    setStudentId(
-                      event.target.value
-                    )
-                  }
-                  onKeyDown={
-                    handleStudentIdKeyDown
-                  }
-                  disabled={authLoading}
-                />
+                <div className="input-wrapper">
+                  <span>👤</span>
+
+                  <input
+                    id="username"
+                    ref={usernameRef}
+                    type="text"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={(event) =>
+                      setUsername(
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={
+                      handleUsernameKeyDown
+                    }
+                    autoComplete="username"
+                    disabled={
+                      authLoading
+                    }
+                  />
+                </div>
               </div>
-            </div>
-          )}
 
-          <div className="form-group">
-            <label htmlFor="username">
-              Username
-            </label>
+              <div className="form-group">
+                <label htmlFor="password">
+                  Password
+                </label>
 
-            <div className="input-wrapper">
-              <span>👤</span>
+                <div className="input-wrapper password-wrapper">
+                  <span>🔒</span>
 
-              <input
-                id="username"
-                ref={usernameRef}
-                type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(event) =>
-                  setUsername(
-                    event.target.value
-                  )
-                }
-                onKeyDown={
-                  handleUsernameKeyDown
-                }
-                autoComplete="username"
-                disabled={authLoading}
-              />
-            </div>
-          </div>
+                  <input
+                    id="password"
+                    ref={passwordRef}
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(event) =>
+                      setPassword(
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={
+                      handlePasswordKeyDown
+                    }
+                    autoComplete="current-password"
+                    disabled={
+                      authLoading
+                    }
+                  />
 
-          <div className="form-group">
-            <label htmlFor="password">
-              Password
-            </label>
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() =>
+                      setShowPassword(
+                        (prev) => !prev
+                      )
+                    }
+                    aria-label={
+                      showPassword
+                        ? "Hide password"
+                        : "Show password"
+                    }
+                    disabled={
+                      authLoading
+                    }
+                  >
+                    {showPassword
+                      ? "🙈"
+                      : "👁️"}
+                  </button>
+                </div>
+              </div>
 
-            <div className="input-wrapper password-wrapper">
-              <span>🔒</span>
-
-              <input
-                id="password"
-                ref={passwordRef}
-                type={
-                  showPassword
-                    ? "text"
-                    : "password"
-                }
-                placeholder="Enter your password"
-                value={password}
-                onChange={(event) =>
-                  setPassword(
-                    event.target.value
-                  )
-                }
-                onKeyDown={
-                  handlePasswordKeyDown
-                }
-                autoComplete={
-                  authMode === "login"
-                    ? "current-password"
-                    : "new-password"
-                }
-                disabled={authLoading}
-              />
+              {/* Forgot password appears ONLY after failed login */}
+              {showForgotPasswordLink && (
+                <div className="auth-forgot-row">
+                  <button
+                    type="button"
+                    className="auth-link-button"
+                    onClick={() => {
+                      setAuthMode(
+                        "forgot"
+                      );
+                      setForgotStep(
+                        "request"
+                      );
+                      setForgotUsername(
+                        username.trim()
+                      );
+                      setAuthError("");
+                      setAuthSuccess("");
+                    }}
+                    disabled={
+                      authLoading
+                    }
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
 
               <button
                 type="button"
-                className="password-toggle"
-                onClick={() =>
-                  setShowPassword(
-                    (prev) => !prev
-                  )
+                className="auth-submit"
+                onClick={handleLogin}
+                disabled={
+                  authLoading
                 }
-                aria-label={
-                  showPassword
-                    ? "Hide password"
-                    : "Show password"
-                }
-                disabled={authLoading}
               >
-                {showPassword
-                  ? "🙈"
-                  : "👁️"}
+                {authLoading ? (
+                  <>
+                    <span className="button-spinner" />
+                    Signing in...
+                  </>
+                ) : (
+                  <>Sign In →</>
+                )}
               </button>
-            </div>
-          </div>
 
-          <button
-            type="button"
-            className="auth-submit"
-            onClick={
-              authMode === "login"
-                ? handleLogin
-                : handleRegister
-            }
-            disabled={authLoading}
-          >
-            {authLoading ? (
+              <div className="auth-secondary-action">
+                <span>
+                  Need to verify your email?
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(
+                      "verify-email"
+                    );
+                    setShowForgotPasswordLink(false);
+                    setAuthError("");
+                    setAuthSuccess("");
+                  }}
+                >
+                  Verify Email
+                </button>
+              </div>
+
+              <div className="auth-footer">
+                Don't have an account?
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(
+                      "register"
+                    );
+                    setShowForgotPasswordLink(false);
+                    setAuthError("");
+                    setAuthSuccess("");
+                  }}
+                >
+                  Create one
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ====================================
+              REGISTER
+              ==================================== */}
+
+          {authMode ===
+            "register" && (
+            <>
+              <div className="form-group">
+                <label htmlFor="student-id">
+                  Student ID
+                </label>
+
+                <div className="input-wrapper">
+                  <span>🎓</span>
+
+                  <input
+                    id="student-id"
+                    ref={studentIdRef}
+                    type="number"
+                    placeholder="Enter your student ID"
+                    value={studentId}
+                    onChange={(event) =>
+                      setStudentId(
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={
+                      handleStudentIdKeyDown
+                    }
+                    disabled={
+                      authLoading
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="register-username">
+                  Username
+                </label>
+
+                <div className="input-wrapper">
+                  <span>👤</span>
+
+                  <input
+                    id="register-username"
+                    ref={usernameRef}
+                    type="text"
+                    placeholder="Choose a username"
+                    value={username}
+                    onChange={(event) =>
+                      setUsername(
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={
+                      handleUsernameKeyDown
+                    }
+                    autoComplete="username"
+                    disabled={
+                      authLoading
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="register-email">
+                  Email Address
+                </label>
+
+                <div className="input-wrapper">
+                  <span>✉️</span>
+
+                  <input
+                    id="register-email"
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={email}
+                    onChange={(event) =>
+                      setEmail(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="email"
+                    disabled={
+                      authLoading
+                    }
+                  />
+                </div>
+
+                <small className="field-hint">
+                  Use an email you can access for verification and password recovery.
+                </small>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="register-password">
+                  Password
+                </label>
+
+                <div className="input-wrapper password-wrapper">
+                  <span>🔒</span>
+
+                  <input
+                    id="register-password"
+                    ref={passwordRef}
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    placeholder="Create a password"
+                    value={password}
+                    onChange={(event) =>
+                      setPassword(
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={
+                      handlePasswordKeyDown
+                    }
+                    autoComplete="new-password"
+                    disabled={
+                      authLoading
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() =>
+                      setShowPassword(
+                        (prev) => !prev
+                      )
+                    }
+                    disabled={
+                      authLoading
+                    }
+                    aria-label={
+                      showPassword
+                        ? "Hide password"
+                        : "Show password"
+                    }
+                  >
+                    {showPassword
+                      ? "🙈"
+                      : "👁️"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="confirm-register-password">
+                  Confirm Password
+                </label>
+
+                <div className="input-wrapper password-wrapper">
+                  <span>🔐</span>
+
+                  <input
+                    id="confirm-register-password"
+                    type={
+                      showConfirmRegisterPassword
+                        ? "text"
+                        : "password"
+                    }
+                    placeholder="Confirm your password"
+                    value={
+                      confirmRegisterPassword
+                    }
+                    onChange={(event) =>
+                      setConfirmRegisterPassword(
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={
+                      handlePasswordKeyDown
+                    }
+                    autoComplete="new-password"
+                    disabled={
+                      authLoading
+                    }
+                  />
+
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() =>
+                      setShowConfirmRegisterPassword(
+                        (prev) => !prev
+                      )
+                    }
+                    disabled={
+                      authLoading
+                    }
+                    aria-label={
+                      showConfirmRegisterPassword
+                        ? "Hide password"
+                        : "Show password"
+                    }
+                  >
+                    {showConfirmRegisterPassword
+                      ? "🙈"
+                      : "👁️"}
+                  </button>
+                </div>
+
+                <small className="field-hint">
+                  Password must be at least 6 characters.
+                </small>
+              </div>
+
+              <button
+                type="button"
+                className="auth-submit"
+                onClick={
+                  handleRegister
+                }
+                disabled={
+                  authLoading
+                }
+              >
+                {authLoading ? (
+                  <>
+                    <span className="button-spinner" />
+                    Creating account...
+                  </>
+                ) : (
+                  <>
+                    Create Account →
+                  </>
+                )}
+              </button>
+
+              <div className="auth-footer">
+                Already have an account?
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuthMode(
+                      "login"
+                    );
+                    setShowForgotPasswordLink(false);
+                    setAuthError("");
+                    setAuthSuccess("");
+                  }}
+                >
+                  Sign in
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ====================================
+              FORGOT PASSWORD - REQUEST
+              ==================================== */}
+
+          {authMode ===
+            "forgot" &&
+            forgotStep ===
+              "request" && (
               <>
-                <span className="button-spinner" />
-                Please wait...
+                <div className="form-group">
+                  <label htmlFor="forgot-username">
+                    Username
+                  </label>
+
+                  <div className="input-wrapper">
+                    <span>👤</span>
+
+                    <input
+                      id="forgot-username"
+                      type="text"
+                      placeholder="Enter your username"
+                      value={
+                        forgotUsername
+                      }
+                      onChange={(event) =>
+                        setForgotUsername(
+                          event.target.value
+                        )
+                      }
+                      autoComplete="username"
+                      disabled={
+                        authLoading
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="forgot-email">
+                    Registered Email
+                  </label>
+
+                  <div className="input-wrapper">
+                    <span>✉️</span>
+
+                    <input
+                      id="forgot-email"
+                      type="email"
+                      placeholder="Enter your registered email"
+                      value={
+                        forgotEmail
+                      }
+                      onChange={(event) =>
+                        setForgotEmail(
+                          event.target.value
+                        )
+                      }
+                      autoComplete="email"
+                      disabled={
+                        authLoading
+                      }
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="auth-submit"
+                  onClick={
+                    handleForgotPassword
+                  }
+                  disabled={
+                    authLoading
+                  }
+                >
+                  {authLoading ? (
+                    <>
+                      <span className="button-spinner" />
+                      Sending code...
+                    </>
+                  ) : (
+                    <>
+                      Send Verification Code →
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className="auth-back-button"
+                  onClick={() => {
+                    setAuthMode(
+                      "login"
+                    );
+                    setShowForgotPasswordLink(false);
+                    setAuthError("");
+                    setAuthSuccess("");
+                  }}
+                  disabled={
+                    authLoading
+                  }
+                >
+                  ← Back to Login
+                </button>
               </>
-            ) : authMode === "login" ? (
-              <>Sign In →</>
-            ) : (
-              <>Create Account →</>
             )}
-          </button>
 
-          <div className="auth-footer">
-            {authMode === "login"
-              ? "Don't have an account?"
-              : "Already have an account?"}
+          {/* ====================================
+              FORGOT PASSWORD - VERIFY
+              ==================================== */}
 
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode(
-                  authMode === "login"
-                    ? "register"
-                    : "login"
-                );
+          {authMode ===
+            "forgot" &&
+            forgotStep ===
+              "verify" && (
+              <>
+                <div className="verification-email-info">
+                  <div className="verification-icon">
+                    ✉️
+                  </div>
 
-                setAuthError("");
-                setAuthSuccess("");
-                setShowPassword(false);
-              }}
-            >
-              {authMode === "login"
-                ? "Create one"
-                : "Sign in"}
-            </button>
-          </div>
+                  <div>
+                    <strong>
+                      Check your email
+                    </strong>
+
+                    <span>
+                      Enter the 6-digit code sent to your registered email address.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="forgot-code">
+                    Verification Code
+                  </label>
+
+                  <div className="input-wrapper code-input-wrapper">
+                    <span>🔢</span>
+
+                    <input
+                      id="forgot-code"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      placeholder="Enter 6-digit code"
+                      value={
+                        forgotCode
+                      }
+                      onChange={(event) =>
+                        setForgotCode(
+                          event.target.value.replace(
+                            /\D/g,
+                            ""
+                          )
+                        )
+                      }
+                      disabled={
+                        authLoading
+                      }
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="auth-submit"
+                  onClick={
+                    handleVerifyResetCode
+                  }
+                  disabled={
+                    authLoading
+                  }
+                >
+                  {authLoading ? (
+                    <>
+                      <span className="button-spinner" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      Verify Code →
+                    </>
+                  )}
+                </button>
+
+                <div className="verification-actions">
+                  <button
+                    type="button"
+                    className="auth-back-button"
+                    onClick={() => {
+                      setForgotStep(
+                        "request"
+                      );
+                      setForgotCode("");
+                      setAuthError("");
+                      setAuthSuccess("");
+                    }}
+                    disabled={
+                      authLoading
+                    }
+                  >
+                    ← Change Details
+                  </button>
+
+                  <button
+                    type="button"
+                    className="auth-link-button"
+                    onClick={
+                      handleForgotPassword
+                    }
+                    disabled={
+                      authLoading
+                    }
+                  >
+                    Resend Code
+                  </button>
+                </div>
+              </>
+            )}
+
+          {/* ====================================
+              FORGOT PASSWORD - RESET
+              ==================================== */}
+
+          {authMode ===
+            "forgot" &&
+            forgotStep ===
+              "reset" && (
+              <>
+                <div className="verified-code-badge">
+                  <span>✓</span>
+                  Code verified
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="reset-password">
+                    New Password
+                  </label>
+
+                  <div className="input-wrapper password-wrapper">
+                    <span>🔑</span>
+
+                    <input
+                      id="reset-password"
+                      type={
+                        showResetPassword
+                          ? "text"
+                          : "password"
+                      }
+                      placeholder="Enter new password"
+                      value={
+                        resetPassword
+                      }
+                      onChange={(event) =>
+                        setResetPassword(
+                          event.target.value
+                        )
+                      }
+                      autoComplete="new-password"
+                      disabled={
+                        authLoading
+                      }
+                    />
+
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() =>
+                        setShowResetPassword(
+                          (prev) =>
+                            !prev
+                        )
+                      }
+                      disabled={
+                        authLoading
+                      }
+                    >
+                      {showResetPassword
+                        ? "🙈"
+                        : "👁️"}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirm-reset-password">
+                    Confirm New Password
+                  </label>
+
+                  <div className="input-wrapper password-wrapper">
+                    <span>🔐</span>
+
+                    <input
+                      id="confirm-reset-password"
+                      type={
+                        showConfirmResetPassword
+                          ? "text"
+                          : "password"
+                      }
+                      placeholder="Confirm new password"
+                      value={
+                        confirmResetPassword
+                      }
+                      onChange={(event) =>
+                        setConfirmResetPassword(
+                          event.target.value
+                        )
+                      }
+                      autoComplete="new-password"
+                      disabled={
+                        authLoading
+                      }
+                    />
+
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() =>
+                        setShowConfirmResetPassword(
+                          (prev) =>
+                            !prev
+                        )
+                      }
+                      disabled={
+                        authLoading
+                      }
+                    >
+                      {showConfirmResetPassword
+                        ? "🙈"
+                        : "👁️"}
+                    </button>
+                  </div>
+                </div>
+
+                <small className="field-hint">
+                  Password must be at least 6 characters.
+                </small>
+
+                <button
+                  type="button"
+                  className="auth-submit"
+                  onClick={
+                    handleResetPassword
+                  }
+                  disabled={
+                    authLoading
+                  }
+                >
+                  {authLoading ? (
+                    <>
+                      <span className="button-spinner" />
+                      Resetting password...
+                    </>
+                  ) : (
+                    <>
+                      Reset Password →
+                    </>
+                  )}
+                </button>
+              </>
+            )}
+
+          {/* ====================================
+              EMAIL VERIFICATION
+              ==================================== */}
+
+          {authMode ===
+            "verify-email" && (
+            <>
+              <div className="form-group">
+                <label htmlFor="verification-username">
+                  Username
+                </label>
+
+                <div className="input-wrapper">
+                  <span>👤</span>
+
+                  <input
+                    id="verification-username"
+                    type="text"
+                    placeholder="Enter your username"
+                    value={
+                      verificationUsername
+                    }
+                    onChange={(event) =>
+                      setVerificationUsername(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="username"
+                    disabled={
+                      authLoading
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="verification-email">
+                  Email Address
+                </label>
+
+                <div className="input-wrapper">
+                  <span>✉️</span>
+
+                  <input
+                    id="verification-email"
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={
+                      verificationEmail
+                    }
+                    onChange={(event) =>
+                      setVerificationEmail(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="email"
+                    disabled={
+                      authLoading
+                    }
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="auth-submit"
+                onClick={
+                  handleSendEmailVerification
+                }
+                disabled={
+                  authLoading
+                }
+              >
+                {authLoading ? (
+                  <>
+                    <span className="button-spinner" />
+                    Sending code...
+                  </>
+                ) : (
+                  <>
+                    Send Verification Code →
+                  </>
+                )}
+              </button>
+
+              <div className="form-divider">
+                <span>
+                  Already received a code?
+                </span>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="verification-code">
+                  Verification Code
+                </label>
+
+                <div className="input-wrapper code-input-wrapper">
+                  <span>🔢</span>
+
+                  <input
+                    id="verification-code"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="Enter 6-digit code"
+                    value={
+                      verificationCode
+                    }
+                    onChange={(event) =>
+                      setVerificationCode(
+                        event.target.value.replace(
+                          /\D/g,
+                          ""
+                        )
+                      )
+                    }
+                    disabled={
+                      authLoading
+                    }
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="auth-submit"
+                onClick={
+                  handleVerifyEmail
+                }
+                disabled={
+                  authLoading
+                }
+              >
+                {authLoading ? (
+                  <>
+                    <span className="button-spinner" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    Verify Email ✓
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="auth-back-button"
+                onClick={() => {
+                  setAuthMode(
+                    "login"
+                  );
+                  setShowForgotPasswordLink(false);
+                  setAuthError("");
+                  setAuthSuccess("");
+                }}
+                disabled={
+                  authLoading
+                }
+              >
+                ← Back to Login
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -1127,7 +2578,6 @@ function App() {
 
         <nav className="sidebar-nav">
 
-          {/* DASHBOARD */}
           <button
             type="button"
             className={
@@ -1146,7 +2596,6 @@ function App() {
             Dashboard
           </button>
 
-          {/* PERFORMANCE */}
           <button
             type="button"
             className={
@@ -1165,7 +2614,6 @@ function App() {
             Performance
           </button>
 
-          {/* ANALYTICS */}
           <button
             type="button"
             className={
@@ -1184,7 +2632,6 @@ function App() {
             Analytics
           </button>
 
-          {/* INSIGHTS */}
           <button
             type="button"
             className={
@@ -1346,10 +2793,14 @@ function App() {
               className="dashboard-section"
             >
               <div className="section-title">
-                <span>PERFORMANCE</span>
+                <span>
+                  PERFORMANCE
+                </span>
+
                 <h2>
                   Academic Performance
                 </h2>
+
                 <p>
                   Understand how you are performing across subjects.
                 </p>
@@ -1473,10 +2924,14 @@ function App() {
               className="dashboard-section"
             >
               <div className="section-title">
-                <span>ANALYTICS</span>
+                <span>
+                  ANALYTICS
+                </span>
+
                 <h2>
                   Academic Analytics
                 </h2>
+
                 <p>
                   A quick view of your important academic metrics.
                 </p>
@@ -1585,10 +3040,14 @@ function App() {
               className="dashboard-section"
             >
               <div className="section-title">
-                <span>INSIGHTS</span>
+                <span>
+                  INSIGHTS
+                </span>
+
                 <h2>
                   AI-Powered Insights
                 </h2>
+
                 <p>
                   Personalized guidance based on your academic data.
                 </p>
@@ -1750,7 +3209,9 @@ function App() {
               <button
                 type="button"
                 className="change-password-button"
-                onClick={openChangePassword}
+                onClick={
+                  openChangePassword
+                }
               >
                 🔒 Change Password
               </button>
@@ -1776,7 +3237,9 @@ function App() {
       {isChangePasswordOpen && (
         <div
           className="modal-overlay"
-          onClick={closeChangePassword}
+          onClick={
+            closeChangePassword
+          }
         >
           <div
             className="password-modal"
@@ -1798,7 +3261,9 @@ function App() {
               <button
                 type="button"
                 className="modal-close"
-                onClick={closeChangePassword}
+                onClick={
+                  closeChangePassword
+                }
               >
                 ✕
               </button>
@@ -1835,7 +3300,9 @@ function App() {
                         : "password"
                     }
                     placeholder="Enter current password"
-                    value={currentPassword}
+                    value={
+                      currentPassword
+                    }
                     onChange={(event) =>
                       setCurrentPassword(
                         event.target.value
@@ -1851,7 +3318,8 @@ function App() {
                     className="password-toggle"
                     onClick={() =>
                       setShowCurrentPassword(
-                        (prev) => !prev
+                        (prev) =>
+                          !prev
                       )
                     }
                     disabled={
@@ -1880,7 +3348,9 @@ function App() {
                         : "password"
                     }
                     placeholder="Enter new password"
-                    value={newPassword}
+                    value={
+                      newPassword
+                    }
                     onChange={(event) =>
                       setNewPassword(
                         event.target.value
@@ -1896,7 +3366,8 @@ function App() {
                     className="password-toggle"
                     onClick={() =>
                       setShowNewPassword(
-                        (prev) => !prev
+                        (prev) =>
+                          !prev
                       )
                     }
                     disabled={
@@ -1925,7 +3396,9 @@ function App() {
                         : "password"
                     }
                     placeholder="Confirm new password"
-                    value={confirmPassword}
+                    value={
+                      confirmPassword
+                    }
                     onChange={(event) =>
                       setConfirmPassword(
                         event.target.value
@@ -1941,7 +3414,8 @@ function App() {
                     className="password-toggle"
                     onClick={() =>
                       setShowConfirmPassword(
-                        (prev) => !prev
+                        (prev) =>
+                          !prev
                       )
                     }
                     disabled={
@@ -1962,7 +3436,9 @@ function App() {
               <button
                 type="button"
                 className="profile-close-button"
-                onClick={closeChangePassword}
+                onClick={
+                  closeChangePassword
+                }
                 disabled={
                   passwordChangeLoading
                 }

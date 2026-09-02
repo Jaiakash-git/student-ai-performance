@@ -3,10 +3,20 @@
 # ==========================================
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+from fastapi.security import (
+    HTTPBearer,
+    HTTPAuthorizationCredentials
+)
+
 from datetime import datetime, timedelta
+
 from jose import JWTError, jwt
+
 from passlib.context import CryptContext
+
+import hashlib
+import secrets
 import os
 
 
@@ -192,3 +202,101 @@ def get_current_user(
         "student_id": student_id,
         "username": username
     }
+
+
+# ==========================================
+# PASSWORD RESET CONFIGURATION
+# ==========================================
+
+RESET_CODE_EXPIRE_MINUTES = 10
+
+
+# ==========================================
+# GENERATE RESET CODE
+# ==========================================
+
+def generate_reset_code():
+    """
+    Generate a cryptographically secure
+    six-digit verification code.
+
+    The code itself should only be delivered
+    through the verified recovery channel.
+    """
+
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+# ==========================================
+# HASH RESET CODE
+# ==========================================
+
+def hash_reset_code(code: str):
+    """
+    Hash the reset code before storing it
+    in the database.
+
+    The original verification code is never
+    stored in plaintext.
+    """
+
+    return hashlib.sha256(
+        code.encode("utf-8")
+    ).hexdigest()
+
+
+# ==========================================
+# VERIFY RESET CODE
+# ==========================================
+
+def verify_reset_code(
+    code: str,
+    code_hash: str
+):
+    """
+    Verify a supplied reset code against
+    its stored hash.
+    """
+
+    supplied_hash = hash_reset_code(
+        code
+    )
+
+    return secrets.compare_digest(
+        supplied_hash,
+        code_hash
+    )
+
+# =========================================================
+# EMAIL VERIFICATION CODE
+# =========================================================
+
+EMAIL_VERIFICATION_EXPIRE_MINUTES = 10
+
+
+def generate_email_verification_code():
+    """
+    Generate a cryptographically secure 6-digit verification code.
+    """
+    return f"{secrets.randbelow(1_000_000):06d}"
+
+
+def hash_email_verification_code(code: str):
+    """
+    Store only the SHA-256 hash of the verification code.
+    """
+    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+
+
+def verify_email_verification_code(code: str, code_hash: str):
+    """
+    Safely compare the supplied code with the stored hash.
+    """
+    supplied_hash = hash_email_verification_code(code)
+
+    return secrets.compare_digest(
+        supplied_hash,
+        code_hash
+    )
+
+

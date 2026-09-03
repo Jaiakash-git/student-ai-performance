@@ -490,117 +490,97 @@ function App() {
   // ========================================
 
   const handleRegister = async () => {
-    if (
-      !studentId.trim() ||
-      !username.trim() ||
-      !email.trim() ||
-      !password.trim() ||
-      !confirmRegisterPassword.trim()
-    ) {
-      setAuthError("Please fill in all fields.");
-      return;
+  if (
+    !studentId.trim() ||
+    !username.trim() ||
+    !email.trim() ||
+    !password.trim() ||
+    !confirmRegisterPassword.trim()
+  ) {
+    setAuthError("Please fill in all fields.");
+    return;
+  }
+
+  const numericStudentId = Number(studentId);
+
+  if (!Number.isInteger(numericStudentId) || numericStudentId <= 0) {
+    setAuthError("Student ID must be a valid number.");
+    return;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+    setAuthError("Please enter a valid email address.");
+    return;
+  }
+
+  if (password.length < 6) {
+    setAuthError("Password must be at least 6 characters.");
+    return;
+  }
+
+  if (password !== confirmRegisterPassword) {
+    setAuthError("Password and confirmation do not match.");
+    return;
+  }
+
+  setAuthLoading(true);
+  setAuthError("");
+  setAuthSuccess("");
+
+  try {
+    const response = await fetch(`${API_URL}/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        student_id: numericStudentId,
+        username: username.trim(),
+        email: normalizedEmail,
+        password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Registration failed.");
     }
 
-    const numericStudentId = Number(studentId);
+    // --------------------------------------
+    // MOVE TO EMAIL VERIFICATION
+    // --------------------------------------
 
-    if (
-      !Number.isInteger(numericStudentId) ||
-      numericStudentId <= 0
-    ) {
-      setAuthError(
-        "Student ID must be a valid number."
-      );
-      return;
-    }
+    setVerificationUsername(username.trim());
+    setVerificationEmail(normalizedEmail);
+    setVerificationCode("");
 
-    const normalizedEmail =
-      email.trim().toLowerCase();
+    setAuthMode("verify-email");
 
-    if (
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
-        normalizedEmail
-      )
-    ) {
-      setAuthError(
-        "Please enter a valid email address."
-      );
-      return;
-    }
+    setAuthSuccess(
+      "Registration successful! A verification code has been sent to your email."
+    );
 
-    if (password.length < 6) {
-      setAuthError(
-        "Password must be at least 6 characters."
-      );
-      return;
-    }
+    // Keep registration values temporarily.
+    // They are useful if the user entered
+    // the wrong email and needs to correct it.
+    setShowForgotPasswordLink(false);
+    setShowPassword(false);
+    setShowConfirmRegisterPassword(false);
+  } catch (error) {
+    console.error(error);
 
-    if (
-      password !== confirmRegisterPassword
-    ) {
-      setAuthError(
-        "Password and confirmation do not match."
-      );
-      return;
-    }
-
-    setAuthLoading(true);
-    setAuthError("");
-    setAuthSuccess("");
-
-    try {
-      const response = await fetch(
-        `${API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            student_id: numericStudentId,
-            username: username.trim(),
-            email: normalizedEmail,
-            password,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.detail ||
-            "Registration failed."
-        );
-      }
-
-      setAuthSuccess(
-        "Registration successful! You can now login."
-      );
-
-      setAuthMode("login");
-
-      setStudentId("");
-      setEmail("");
-      setPassword("");
-      setConfirmRegisterPassword("");
-
-      setShowPassword(false);
-      setShowConfirmRegisterPassword(false);
-
-      setShowForgotPasswordLink(false);
-    } catch (error) {
-      console.error(error);
-
-      setAuthError(
-        error instanceof Error
-          ? error.message
-          : "Unable to register."
-      );
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
+    setAuthError(
+      error instanceof Error
+        ? error.message
+        : "Unable to register."
+    );
+  } finally {
+    setAuthLoading(false);
+  }
+};
   // ========================================
   // SEND EMAIL VERIFICATION
   // ========================================
@@ -671,83 +651,80 @@ function App() {
   // ========================================
 
   const handleVerifyEmail = async () => {
-    if (
-      !verificationUsername.trim() ||
-      !verificationCode.trim()
-    ) {
-      setAuthError(
-        "Please enter your username and verification code."
+  if (!verificationUsername.trim() || !verificationCode.trim()) {
+    setAuthError(
+      "Please enter your username and verification code."
+    );
+    return;
+  }
+
+  if (!/^\d{6}$/.test(verificationCode.trim())) {
+    setAuthError("Verification code must be 6 digits.");
+    return;
+  }
+
+  setAuthLoading(true);
+  setAuthError("");
+  setAuthSuccess("");
+
+  try {
+    const response = await fetch(`${API_URL}/auth/verify-email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: verificationUsername.trim(),
+        verification_code: verificationCode.trim(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.detail || "Invalid or expired verification code."
       );
-      return;
     }
 
-    if (
-      !/^\d{6}$/.test(
-        verificationCode.trim()
-      )
-    ) {
-      setAuthError(
-        "Verification code must be 6 digits."
-      );
-      return;
-    }
+    // --------------------------------------
+    // EMAIL VERIFIED
+    // --------------------------------------
 
-    setAuthLoading(true);
-    setAuthError("");
-    setAuthSuccess("");
+    const verifiedUsername = verificationUsername.trim();
 
-    try {
-      const response = await fetch(
-        `${API_URL}/auth/verify-email`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            username:
-              verificationUsername.trim(),
+    setAuthMode("login");
 
-            verification_code:
-              verificationCode.trim(),
-          }),
-        }
-      );
+    setUsername(verifiedUsername);
+    setPassword("");
 
-      const data = await response.json();
+    setStudentId("");
+    setEmail("");
+    setConfirmRegisterPassword("");
 
-      if (!response.ok) {
-        throw new Error(
-          data.detail ||
-            "Invalid or expired verification code."
-        );
-      }
+    setVerificationUsername("");
+    setVerificationEmail("");
+    setVerificationCode("");
 
-      setAuthMode("login");
+    setShowPassword(false);
+    setShowConfirmRegisterPassword(false);
+    setShowForgotPasswordLink(false);
 
-      setUsername(
-        verificationUsername.trim()
-      );
+    setAuthSuccess(
+      "Email verified successfully! You can now login."
+    );
+  } catch (error) {
+    console.error(error);
 
-      setVerificationUsername("");
-      setVerificationEmail("");
-      setVerificationCode("");
-
-      setAuthSuccess(
-        "Email verified successfully! You can now login and use password recovery."
-      );
-    } catch (error) {
-      console.error(error);
-
-      setAuthError(
-        error instanceof Error
-          ? error.message
-          : "Unable to verify email."
-      );
-    } finally {
-      setAuthLoading(false);
-    }
-  };
+    setAuthError(
+      error instanceof Error
+        ? error.message
+        : "Unable to verify email."
+    );
+  } finally {
+    setAuthLoading(false);
+  }
+};
 
   // ========================================
   // FORGOT PASSWORD - REQUEST CODE
@@ -1836,7 +1813,7 @@ function App() {
               </h2>
 
               <p>
-                Verify your email address to enable secure password recovery.
+               Verify your email address to activate your Student AI account.
               </p>
             </div>
           )}
@@ -3925,20 +3902,16 @@ function App() {
               {emailCodeSent && (
                 <>
                   <div className="verification-email-info">
-                    <div className="verification-icon">
-                      ✉️
-                    </div>
-
-                    <div>
-                      <strong>
-                        Check your new email
-                      </strong>
-
-                      <span>
-                        Enter the 6-digit verification code sent to your new email address.
-                      </span>
-                    </div>
-                  </div>
+                  <div className="verification-icon">✉️</div>
+                <div>
+                   <strong>Verify your email</strong>
+                   <span>
+                      A 6-digit verification code will be sent to your email address.
+                      If you entered the wrong email, you can enter the correct email
+                      and request a new code.
+                   </span>
+                </div>
+              </div>
 
                   <div className="form-group">
                     <label htmlFor="email-change-code">

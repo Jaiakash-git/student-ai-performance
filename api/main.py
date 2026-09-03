@@ -514,9 +514,10 @@ def register(
         )
 
         # --------------------------------------
-        # NORMALIZE EMAIL
+        # NORMALIZE INPUT
         # --------------------------------------
 
+        username = request.username.strip()
         email = request.email.strip().lower()
 
         # --------------------------------------
@@ -546,63 +547,39 @@ def register(
             )
 
         # --------------------------------------
-        # CHECK EXISTING USERNAME
+        # CHECK USERNAME
         # --------------------------------------
 
         cursor.execute(
             """
             SELECT
-                user_id
+                user_id,
+                student_id,
+                username,
+                email,
+                email_verified
             FROM users
             WHERE username = %s
             """,
             (
-                request.username,
+                username,
             )
         )
 
-        existing_user = cursor.fetchone()
-
-        if existing_user is not None:
-
-            raise HTTPException(
-                status_code=409,
-                detail="Username already exists."
-            )
+        existing_username = cursor.fetchone()
 
         # --------------------------------------
-        # CHECK EXISTING EMAIL
+        # CHECK STUDENT ACCOUNT
         # --------------------------------------
 
         cursor.execute(
             """
             SELECT
-                user_id
-            FROM users
-            WHERE email = %s
-            """,
-            (
+                user_id,
+                student_id,
+                username,
                 email,
-            )
-        )
-
-        existing_email = cursor.fetchone()
-
-        if existing_email is not None:
-
-            raise HTTPException(
-                status_code=409,
-                detail="Email is already registered."
-            )
-
-        # --------------------------------------
-        # CHECK STUDENT ALREADY REGISTERED
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            SELECT
-                user_id
+                email_verified
             FROM users
             WHERE student_id = %s
             """,
@@ -613,68 +590,295 @@ def register(
 
         existing_student = cursor.fetchone()
 
+        # --------------------------------------
+        # HANDLE EXISTING ACCOUNT
+        # --------------------------------------
+
+        existing_user = None
+
+        if existing_username is not None:
+            existing_user = existing_username
+
         if existing_student is not None:
 
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "This student already "
-                    "has an account."
+            if existing_user is None:
+                existing_user = existing_student
+
+            elif (
+                existing_user["user_id"]
+                != existing_student["user_id"]
+            ):
+
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Username and student ID "
+                        "belong to different accounts."
+                    )
+                )
+
+        if existing_user is not None:
+
+            # ----------------------------------
+            # VERIFIED ACCOUNT CANNOT REGISTER AGAIN
+            # ----------------------------------
+
+            if existing_user["email_verified"]:
+
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "This student already has "
+                        "a verified account."
+                    )
+                )
+
+            # ----------------------------------
+            # UNVERIFIED ACCOUNT
+            #
+            # Allow the user to correct their
+            # email/password and resend OTP.
+            # ----------------------------------
+
+            user_id = existing_user["user_id"]
+
+            # Check whether the new email belongs
+            # to another account.
+            cursor.execute(
+                """
+                SELECT
+                    user_id
+                FROM users
+                WHERE LOWER(email) = %s
+                  AND user_id != %s
+                """,
+                (
+                    email,
+                    user_id
                 )
             )
 
+            existing_email = cursor.fetchone()
+
+            if existing_email is not None:
+
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "Email is already registered "
+                        "with another account."
+                    )
+                )
+
+            # ----------------------------------
+            # HASH NEW PASSWORD
+            # ----------------------------------
+
+            password_hash = hash_password(
+                request.password
+            )
+
+            # ----------------------------------
+            # UPDATE UNVERIFIED ACCOUNT
+            # ----------------------------------
+
+            cursor.execute(
+                """
+                UPDATE users
+                SET
+                    student_id = %s,
+                    username = %s,
+                    password_hash = %s,
+                    email = %s,
+                    email_verified = FALSE,
+                    email_verification_code_hash = NULL,
+                    email_verification_expires_at = NULL,
+                    email_verification_used = FALSE
+                WHERE user_id = %s
+                """,
+                (
+                    request.student_id,
+                    username,
+                    password_hash,
+                    email,
+                    user_id
+                )
+            )
+
+        else:
+
+            # ----------------------------------
+            # CHECK EMAIL
+            # ----------------------------------
+
+            cursor.execute(
+                """
+                SELECT
+                    user_id
+                FROM users
+                WHERE LOWER(email) = %s
+                """,
+                (
+                    email,
+                )
+            )
+
+            existing_email = cursor.fetchone()
+
+            if existing_email is not None:
+
+                raise HTTPException(
+                    status_code=409,
+                    detail="Email is already registered."
+                )
+
+            # ----------------------------------
+            # HASH PASSWORD
+            # ----------------------------------
+
+            password_hash = hash_password(
+                request.password
+            )
+
+            # ----------------------------------
+            # CREATE UNVERIFIED USER
+            # ----------------------------------
+
+            cursor.execute(
+                """
+                INSERT INTO users
+                (
+                    student_id,
+                    username,
+                    password_hash,
+                    email,
+                    email_verified,
+                    email_verification_used
+                )
+                VALUES
+                (
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    FALSE,
+                    FALSE
+                )
+                """,
+                (
+                    request.student_id,
+                    username,
+                    password_hash,
+                    email
+                )
+            )
+
+            user_id = cursor.lastrowid
+
         # --------------------------------------
-        # HASH PASSWORD
+        # GENERATE EMAIL VERIFICATION OTP
         # --------------------------------------
 
-        password_hash = hash_password(
-            request.password
+        verification_code = (
+            generate_email_verification_code()
+        )
+
+        code_hash = (
+            hash_email_verification_code(
+                verification_code
+            )
+        )
+
+        expires_at = (
+            datetime.utcnow()
+            + timedelta(
+                minutes=EMAIL_VERIFICATION_EXPIRE_MINUTES
+            )
         )
 
         # --------------------------------------
-        # CREATE USER
-        # EMAIL STARTS AS UNVERIFIED
+        # STORE OTP
         # --------------------------------------
 
         cursor.execute(
             """
-            INSERT INTO users
-            (
-                student_id,
-                username,
-                password_hash,
-                email,
-                email_verified
-            )
-            VALUES
-            (
-                %s,
-                %s,
-                %s,
-                %s,
-                FALSE
-            )
+            UPDATE users
+            SET
+                email_verification_code_hash = %s,
+                email_verification_expires_at = %s,
+                email_verification_used = FALSE
+            WHERE user_id = %s
             """,
             (
-                request.student_id,
-                request.username,
-                password_hash,
-                email
+                code_hash,
+                expires_at,
+                user_id
             )
         )
 
         connection.commit()
 
         # --------------------------------------
-        # RETURN RESPONSE
+        # SEND OTP
+        # --------------------------------------
+
+        try:
+
+            send_email_verification_code(
+                email,
+                verification_code
+            )
+
+        except Exception as email_error:
+
+            # Keep the account unverified but
+            # invalidate the OTP.
+
+            cursor.execute(
+                """
+                UPDATE users
+                SET
+                    email_verification_code_hash = NULL,
+                    email_verification_expires_at = NULL,
+                    email_verification_used = FALSE
+                WHERE user_id = %s
+                """,
+                (
+                    user_id,
+                )
+            )
+
+            connection.commit()
+
+            print(
+                "Registration verification email error: "
+                f"{email_error}"
+            )
+
+            raise HTTPException(
+                status_code=500,
+                detail=(
+                    "Account was created, but the "
+                    "verification email could not be sent. "
+                    "Please use Verify Email to request "
+                    "a new code."
+                )
+            )
+
+        # --------------------------------------
+        # RETURN
         # --------------------------------------
 
         return AuthResponse(
-            message="Registration successful.",
+            message=(
+                "Registration successful. "
+                "A verification code has been sent "
+                "to your email."
+            ),
             access_token="",
             token_type="bearer",
             student_id=request.student_id,
-            username=request.username,
+            username=username,
             student_name=student["name"]
         )
 
@@ -733,7 +937,9 @@ def login(
                 user_id,
                 student_id,
                 username,
-                password_hash
+                password_hash,
+                email,
+                email_verified
             FROM users
             WHERE username = %s
             """,
@@ -754,6 +960,10 @@ def login(
                 )
             )
 
+        # --------------------------------------
+        # VERIFY PASSWORD
+        # --------------------------------------
+
         password_valid = verify_password(
             request.password,
             user["password_hash"]
@@ -768,6 +978,24 @@ def login(
                     "or password."
                 )
             )
+
+        # --------------------------------------
+        # EMAIL VERIFICATION CHECK
+        # --------------------------------------
+
+        if not user["email_verified"]:
+
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "Please verify your email "
+                    "address before logging in."
+                )
+            )
+
+        # --------------------------------------
+        # GET STUDENT
+        # --------------------------------------
 
         cursor.execute(
             """
@@ -789,6 +1017,10 @@ def login(
                 status_code=404,
                 detail="Student not found."
             )
+
+        # --------------------------------------
+        # CREATE JWT
+        # --------------------------------------
 
         access_token = create_access_token(
             {
@@ -819,894 +1051,6 @@ def login(
         raise HTTPException(
             status_code=500,
             detail="Login failed."
-        )
-
-    finally:
-
-        if cursor:
-            cursor.close()
-
-        if connection:
-            connection.close()
-
-
-# ==========================================
-# SEND PASSWORD CHANGE CODE
-# ==========================================
-
-@app.post("/auth/change-password/request")
-def send_password_change_code(
-    request: SendPasswordChangeCodeRequest,
-    current_user: dict = Depends(
-        get_current_user
-    )
-):
-
-    connection = None
-    cursor = None
-
-    try:
-
-        connection = get_connection()
-
-        cursor = connection.cursor(
-            dictionary=True
-        )
-
-        # --------------------------------------
-        # GET CURRENT USER
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            SELECT
-                user_id,
-                password_hash,
-                email,
-                email_verified
-            FROM users
-            WHERE student_id = %s
-            """,
-            (
-                current_user["student_id"],
-            )
-        )
-
-        user = cursor.fetchone()
-
-        if user is None:
-
-            raise HTTPException(
-                status_code=404,
-                detail="User account not found."
-            )
-
-        # --------------------------------------
-        # VERIFY CURRENT PASSWORD
-        # --------------------------------------
-
-        if not verify_password(
-            request.current_password,
-            user["password_hash"]
-        ):
-
-            raise HTTPException(
-                status_code=401,
-                detail="Current password is incorrect."
-            )
-
-        # --------------------------------------
-        # EMAIL MUST EXIST
-        # --------------------------------------
-
-        if not user["email"]:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "No email address is registered "
-                    "for this account."
-                )
-            )
-
-        # --------------------------------------
-        # EMAIL MUST BE VERIFIED
-        # --------------------------------------
-
-        if not user["email_verified"]:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Your email address must be "
-                    "verified before changing your password."
-                )
-            )
-
-        # --------------------------------------
-        # GENERATE CODE
-        # --------------------------------------
-
-        verification_code = (
-            generate_password_change_code()
-        )
-
-        code_hash = (
-            hash_password_change_code(
-                verification_code
-            )
-        )
-
-        expires_at = (
-            datetime.utcnow()
-            + timedelta(
-                minutes=PASSWORD_CHANGE_CODE_EXPIRE_MINUTES
-            )
-        )
-
-        # --------------------------------------
-        # STORE CODE
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            UPDATE users
-            SET
-                password_change_code_hash = %s,
-                password_change_expires_at = %s,
-                password_change_used = FALSE
-            WHERE user_id = %s
-            """,
-            (
-                code_hash,
-                expires_at,
-                user["user_id"]
-            )
-        )
-
-        connection.commit()
-
-        # --------------------------------------
-        # SEND CODE
-        # --------------------------------------
-
-        try:
-
-            send_password_change_code_email(
-                user["email"],
-                verification_code
-            )
-
-        except Exception as email_error:
-
-            cursor.execute(
-                """
-                UPDATE users
-                SET
-                    password_change_code_hash = NULL,
-                    password_change_expires_at = NULL,
-                    password_change_used = FALSE
-                WHERE user_id = %s
-                """,
-                (
-                    user["user_id"],
-                )
-            )
-
-            connection.commit()
-
-            print(
-                "Password change email error: "
-                f"{email_error}"
-            )
-
-            raise HTTPException(
-                status_code=500,
-                detail=(
-                    "Unable to send verification email."
-                )
-            )
-
-        return {
-            "message": (
-                "A verification code has been sent "
-                "to your registered email address."
-            )
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as error:
-
-        if connection:
-            connection.rollback()
-
-        print(
-            f"Send password change code error: {error}"
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Unable to send password "
-                "change verification code."
-            )
-        )
-
-    finally:
-
-        if cursor:
-            cursor.close()
-
-        if connection:
-            connection.close()
-
-
-# ==========================================
-# CHANGE PASSWORD
-# ==========================================
-
-@app.post("/auth/change-password")
-def change_password(
-    request: ChangePasswordRequest,
-    current_user: dict = Depends(
-        get_current_user
-    )
-):
-
-    connection = None
-    cursor = None
-
-    try:
-
-        connection = get_connection()
-
-        cursor = connection.cursor(
-            dictionary=True
-        )
-
-        # --------------------------------------
-        # GET CURRENT USER
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            SELECT
-                user_id,
-                password_hash,
-                email,
-                email_verified,
-                password_change_code_hash,
-                password_change_expires_at,
-                password_change_used
-            FROM users
-            WHERE student_id = %s
-            """,
-            (
-                current_user["student_id"],
-            )
-        )
-
-        user = cursor.fetchone()
-
-        if user is None:
-
-            raise HTTPException(
-                status_code=404,
-                detail="User account not found."
-            )
-
-        # --------------------------------------
-        # VERIFY CURRENT PASSWORD
-        # --------------------------------------
-
-        if not verify_password(
-            request.current_password,
-            user["password_hash"]
-        ):
-
-            raise HTTPException(
-                status_code=401,
-                detail="Current password is incorrect."
-            )
-
-        # --------------------------------------
-        # EMAIL CHECK
-        # --------------------------------------
-
-        if not user["email"] or not user["email_verified"]:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "A verified email address is required "
-                    "to change your password."
-                )
-            )
-
-        # --------------------------------------
-        # CHECK CODE
-        # --------------------------------------
-
-        code_hash = user[
-            "password_change_code_hash"
-        ]
-
-        expires_at = user[
-            "password_change_expires_at"
-        ]
-
-        if not code_hash or not expires_at:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "No active password change "
-                    "verification code."
-                )
-            )
-
-        # --------------------------------------
-        # CHECK USED
-        # --------------------------------------
-
-        if user["password_change_used"]:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Verification code has "
-                    "already been used."
-                )
-            )
-
-        # --------------------------------------
-        # CHECK EXPIRATION
-        # --------------------------------------
-
-        if datetime.utcnow() > expires_at:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Verification code has expired."
-                )
-            )
-
-        # --------------------------------------
-        # VERIFY CODE
-        # --------------------------------------
-
-        if not verify_password_change_code(
-            request.verification_code,
-            code_hash
-        ):
-
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid verification code."
-            )
-
-        # --------------------------------------
-        # CHECK SAME PASSWORD
-        # --------------------------------------
-
-        if verify_password(
-            request.new_password,
-            user["password_hash"]
-        ):
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "New password must be different "
-                    "from the current password."
-                )
-            )
-
-        # --------------------------------------
-        # HASH NEW PASSWORD
-        # --------------------------------------
-
-        new_password_hash = hash_password(
-            request.new_password
-        )
-
-        # --------------------------------------
-        # UPDATE PASSWORD
-        # INVALIDATE CODE
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            UPDATE users
-            SET
-                password_hash = %s,
-                password_change_code_hash = NULL,
-                password_change_expires_at = NULL,
-                password_change_used = TRUE
-            WHERE user_id = %s
-            """,
-            (
-                new_password_hash,
-                user["user_id"]
-            )
-        )
-
-        connection.commit()
-
-        return {
-            "message": (
-                "Password changed successfully."
-            )
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as error:
-
-        if connection:
-            connection.rollback()
-
-        print(
-            f"Change password error: {error}"
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Unable to change password."
-            )
-        )
-
-    finally:
-
-        if cursor:
-            cursor.close()
-
-        if connection:
-            connection.close()
-
-
-# ==========================================
-# REQUEST EMAIL CHANGE
-# ==========================================
-
-@app.post("/auth/change-email/request")
-def request_email_change(
-    request: ChangeEmailRequest,
-    current_user: dict = Depends(
-        get_current_user
-    )
-):
-
-    connection = None
-    cursor = None
-
-    try:
-
-        connection = get_connection()
-
-        cursor = connection.cursor(
-            dictionary=True
-        )
-
-        new_email = (
-            request.new_email
-            .strip()
-            .lower()
-        )
-
-        # --------------------------------------
-        # GET CURRENT USER
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            SELECT
-                user_id,
-                email
-            FROM users
-            WHERE student_id = %s
-            """,
-            (
-                current_user["student_id"],
-            )
-        )
-
-        user = cursor.fetchone()
-
-        if user is None:
-
-            raise HTTPException(
-                status_code=404,
-                detail="User account not found."
-            )
-
-        # --------------------------------------
-        # CHECK SAME EMAIL
-        # --------------------------------------
-
-        if user["email"]:
-
-            current_email = (
-                user["email"]
-                .strip()
-                .lower()
-            )
-
-            if hmac.compare_digest(
-                current_email,
-                new_email
-            ):
-
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        "The new email address is "
-                        "the same as your current email."
-                    )
-                )
-
-        # --------------------------------------
-        # CHECK EMAIL ALREADY REGISTERED
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            SELECT
-                user_id
-            FROM users
-            WHERE LOWER(email) = %s
-              AND user_id != %s
-            """,
-            (
-                new_email,
-                user["user_id"]
-            )
-        )
-
-        existing_email = cursor.fetchone()
-
-        if existing_email is not None:
-
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "This email address is already "
-                    "registered with another account."
-                )
-            )
-
-        # --------------------------------------
-        # GENERATE CODE
-        # --------------------------------------
-
-        verification_code = (
-            generate_email_change_code()
-        )
-
-        code_hash = (
-            hash_email_change_code(
-                verification_code
-            )
-        )
-
-        expires_at = (
-            datetime.utcnow()
-            + timedelta(
-                minutes=EMAIL_CHANGE_CODE_EXPIRE_MINUTES
-            )
-        )
-
-        # --------------------------------------
-        # STORE PENDING EMAIL
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            UPDATE users
-            SET
-                pending_email = %s,
-                email_change_code_hash = %s,
-                email_change_expires_at = %s,
-                email_change_used = FALSE
-            WHERE user_id = %s
-            """,
-            (
-                new_email,
-                code_hash,
-                expires_at,
-                user["user_id"]
-            )
-        )
-
-        connection.commit()
-
-        # --------------------------------------
-        # SEND CODE TO NEW EMAIL
-        # --------------------------------------
-
-        try:
-
-            send_email_change_code_email(
-                new_email,
-                verification_code
-            )
-
-        except Exception as email_error:
-
-            cursor.execute(
-                """
-                UPDATE users
-                SET
-                    pending_email = NULL,
-                    email_change_code_hash = NULL,
-                    email_change_expires_at = NULL,
-                    email_change_used = FALSE
-                WHERE user_id = %s
-                """,
-                (
-                    user["user_id"],
-                )
-            )
-
-            connection.commit()
-
-            print(
-                "Email change verification error: "
-                f"{email_error}"
-            )
-
-            raise HTTPException(
-                status_code=500,
-                detail=(
-                    "Unable to send verification email."
-                )
-            )
-
-        return {
-            "message": (
-                "A verification code has been sent "
-                "to your new email address."
-            )
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as error:
-
-        if connection:
-            connection.rollback()
-
-        print(
-            f"Request email change error: {error}"
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Unable to request email change."
-            )
-        )
-
-    finally:
-
-        if cursor:
-            cursor.close()
-
-        if connection:
-            connection.close()
-
-
-# ==========================================
-# VERIFY EMAIL CHANGE
-# ==========================================
-
-@app.post("/auth/change-email/verify")
-def verify_email_change(
-    request: VerifyChangeEmailRequest,
-    current_user: dict = Depends(
-        get_current_user
-    )
-):
-
-    connection = None
-    cursor = None
-
-    try:
-
-        connection = get_connection()
-
-        cursor = connection.cursor(
-            dictionary=True
-        )
-
-        # --------------------------------------
-        # GET USER
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            SELECT
-                user_id,
-                pending_email,
-                email_change_code_hash,
-                email_change_expires_at,
-                email_change_used
-            FROM users
-            WHERE student_id = %s
-            """,
-            (
-                current_user["student_id"],
-            )
-        )
-
-        user = cursor.fetchone()
-
-        if user is None:
-
-            raise HTTPException(
-                status_code=404,
-                detail="User account not found."
-            )
-
-        # --------------------------------------
-        # CHECK PENDING EMAIL
-        # --------------------------------------
-
-        if not user["pending_email"]:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "No active email change request."
-                )
-            )
-
-        code_hash = user[
-            "email_change_code_hash"
-        ]
-
-        expires_at = user[
-            "email_change_expires_at"
-        ]
-
-        if not code_hash or not expires_at:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "No active email change "
-                    "verification code."
-                )
-            )
-
-        # --------------------------------------
-        # CHECK USED
-        # --------------------------------------
-
-        if user["email_change_used"]:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Verification code has "
-                    "already been used."
-                )
-            )
-
-        # --------------------------------------
-        # CHECK EXPIRATION
-        # --------------------------------------
-
-        if datetime.utcnow() > expires_at:
-
-            raise HTTPException(
-                status_code=400,
-                detail=(
-                    "Verification code has expired."
-                )
-            )
-
-        # --------------------------------------
-        # VERIFY CODE
-        # --------------------------------------
-
-        if not verify_email_change_code(
-            request.verification_code,
-            code_hash
-        ):
-
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid verification code."
-            )
-
-        # --------------------------------------
-        # FINAL EMAIL DUPLICATE CHECK
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            SELECT
-                user_id
-            FROM users
-            WHERE LOWER(email) = %s
-              AND user_id != %s
-            """,
-            (
-                user["pending_email"]
-                .strip()
-                .lower(),
-                user["user_id"]
-            )
-        )
-
-        existing_email = cursor.fetchone()
-
-        if existing_email is not None:
-
-            raise HTTPException(
-                status_code=409,
-                detail=(
-                    "This email address is already "
-                    "registered with another account."
-                )
-            )
-
-        # --------------------------------------
-        # UPDATE EMAIL
-        # --------------------------------------
-
-        cursor.execute(
-            """
-            UPDATE users
-            SET
-                email = pending_email,
-                email_verified = TRUE,
-
-                pending_email = NULL,
-
-                email_change_code_hash = NULL,
-                email_change_expires_at = NULL,
-                email_change_used = TRUE
-            WHERE user_id = %s
-            """,
-            (
-                user["user_id"],
-            )
-        )
-
-        connection.commit()
-
-        return {
-            "message": (
-                "Email address changed and "
-                "verified successfully."
-            )
-        }
-
-    except HTTPException:
-        raise
-
-    except Exception as error:
-
-        if connection:
-            connection.rollback()
-
-        print(
-            f"Verify email change error: {error}"
-        )
-
-        raise HTTPException(
-            status_code=500,
-            detail=(
-                "Unable to verify email change."
-            )
         )
 
     finally:
@@ -1756,14 +1100,13 @@ def send_email_verification(
             WHERE username = %s
             """,
             (
-                request.username,
+                request.username.strip(),
             )
         )
 
         user = cursor.fetchone()
 
         if user is None:
-
             return generic_response
 
         supplied_email = (
@@ -1773,49 +1116,66 @@ def send_email_verification(
         )
 
         # --------------------------------------
-        # INITIAL EMAIL SETUP
+        # ALREADY VERIFIED
         # --------------------------------------
-
-        if not user["email"]:
-
-            cursor.execute(
-                """
-                UPDATE users
-                SET
-                    email = %s,
-                    email_verified = FALSE
-                WHERE user_id = %s
-                """,
-                (
-                    supplied_email,
-                    user["user_id"]
-                )
-            )
-
-            connection.commit()
-
-            stored_email = supplied_email
-
-        else:
-
-            stored_email = (
-                user["email"]
-                .strip()
-                .lower()
-            )
-
-            if not hmac.compare_digest(
-                stored_email,
-                supplied_email
-            ):
-
-                return generic_response
 
         if user["email_verified"]:
 
             return {
                 "message": "Email is already verified."
             }
+
+        # --------------------------------------
+        # CHECK EMAIL IS NOT USED BY ANOTHER USER
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            SELECT
+                user_id
+            FROM users
+            WHERE LOWER(email) = %s
+              AND user_id != %s
+            """,
+            (
+                supplied_email,
+                user["user_id"]
+            )
+        )
+
+        existing_email = cursor.fetchone()
+
+        if existing_email is not None:
+
+            return generic_response
+
+        # --------------------------------------
+        # UPDATE EMAIL
+        #
+        # This allows an unverified user to fix
+        # a wrongly entered email address.
+        # --------------------------------------
+
+        cursor.execute(
+            """
+            UPDATE users
+            SET
+                email = %s,
+                email_verified = FALSE,
+                email_verification_code_hash = NULL,
+                email_verification_expires_at = NULL,
+                email_verification_used = FALSE
+            WHERE user_id = %s
+            """,
+            (
+                supplied_email,
+                user["user_id"]
+            )
+        )
+
+        # --------------------------------------
+        # GENERATE NEW OTP
+        # --------------------------------------
 
         verification_code = (
             generate_email_verification_code()
@@ -1833,6 +1193,10 @@ def send_email_verification(
                 minutes=EMAIL_VERIFICATION_EXPIRE_MINUTES
             )
         )
+
+        # --------------------------------------
+        # STORE OTP
+        # --------------------------------------
 
         cursor.execute(
             """
@@ -1852,10 +1216,14 @@ def send_email_verification(
 
         connection.commit()
 
+        # --------------------------------------
+        # SEND OTP
+        # --------------------------------------
+
         try:
 
             send_email_verification_code(
-                stored_email,
+                supplied_email,
                 verification_code
             )
 
@@ -1889,7 +1257,12 @@ def send_email_verification(
                 )
             )
 
-        return generic_response
+        return {
+            "message": (
+                "A verification code has been sent "
+                "to your email address."
+            )
+        }
 
     except HTTPException:
         raise

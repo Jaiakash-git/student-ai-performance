@@ -1,17 +1,9 @@
-# ==========================================
-# AUTHENTICATION UTILITIES
-# ==========================================
-
 from fastapi import Depends, HTTPException, status
-
-from fastapi.security import (
-    HTTPBearer,
-    HTTPAuthorizationCredentials
-)
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from datetime import datetime, timedelta
 
-from jose import JWTError, jwt
+from jose import jwt, JWTError
 
 from passlib.context import CryptContext
 
@@ -30,23 +22,14 @@ pwd_context = CryptContext(
 )
 
 
-def hash_password(password: str):
-    """
-    Hash a plain password before storing it
-    in the database.
-    """
-
+def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
 def verify_password(
     plain_password: str,
     hashed_password: str
-):
-    """
-    Verify a plain password against
-    the stored hashed password.
-    """
+) -> bool:
 
     return pwd_context.verify(
         plain_password,
@@ -69,15 +52,12 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 
 # ==========================================
-# CREATE JWT TOKEN
+# CREATE ACCESS TOKEN
 # ==========================================
 
 def create_access_token(data: dict):
-    """
-    Create a JWT access token.
-    """
 
-    token_data = data.copy()
+    to_encode = data.copy()
 
     expire = (
         datetime.utcnow()
@@ -86,29 +66,24 @@ def create_access_token(data: dict):
         )
     )
 
-    token_data.update(
+    to_encode.update(
         {
             "exp": expire
         }
     )
 
-    encoded_jwt = jwt.encode(
-        token_data,
+    return jwt.encode(
+        to_encode,
         SECRET_KEY,
         algorithm=ALGORITHM
     )
 
-    return encoded_jwt
-
 
 # ==========================================
-# DECODE JWT TOKEN
+# DECODE ACCESS TOKEN
 # ==========================================
 
 def decode_access_token(token: str):
-    """
-    Decode and verify a JWT access token.
-    """
 
     try:
 
@@ -126,7 +101,7 @@ def decode_access_token(token: str):
 
 
 # ==========================================
-# HTTP BEARER SECURITY
+# HTTP BEARER
 # ==========================================
 
 security = HTTPBearer()
@@ -141,33 +116,20 @@ def get_current_user(
         security
     )
 ):
-    """
-    Extract the JWT token from the Authorization
-    header, verify it, and return the authenticated
-    user's information.
-    """
 
     token = credentials.credentials
 
     payload = decode_access_token(token)
 
-    # --------------------------------------
-    # INVALID / EXPIRED TOKEN
-    # --------------------------------------
-
     if payload is None:
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token.",
+            detail="Invalid or expired authentication token.",
             headers={
                 "WWW-Authenticate": "Bearer"
             }
         )
-
-    # --------------------------------------
-    # GET USER INFORMATION
-    # --------------------------------------
 
     student_id = payload.get(
         "student_id"
@@ -177,14 +139,7 @@ def get_current_user(
         "username"
     )
 
-    # --------------------------------------
-    # VALIDATE TOKEN DATA
-    # --------------------------------------
-
-    if (
-        student_id is None
-        or username is None
-    ):
+    if student_id is None or username is None:
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -194,109 +149,152 @@ def get_current_user(
             }
         )
 
-    # --------------------------------------
-    # RETURN CURRENT USER
-    # --------------------------------------
-
     return {
+        "user_id": payload.get("user_id"),
         "student_id": student_id,
         "username": username
     }
 
 
 # ==========================================
-# PASSWORD RESET CONFIGURATION
+# PASSWORD RESET
 # ==========================================
 
 RESET_CODE_EXPIRE_MINUTES = 10
 
 
-# ==========================================
-# GENERATE RESET CODE
-# ==========================================
+def generate_reset_code() -> str:
 
-def generate_reset_code():
-    """
-    Generate a cryptographically secure
-    six-digit verification code.
-
-    The code itself should only be delivered
-    through the verified recovery channel.
-    """
-
-    return f"{secrets.randbelow(1_000_000):06d}"
+    return f"{secrets.randbelow(1000000):06d}"
 
 
-# ==========================================
-# HASH RESET CODE
-# ==========================================
-
-def hash_reset_code(code: str):
-    """
-    Hash the reset code before storing it
-    in the database.
-
-    The original verification code is never
-    stored in plaintext.
-    """
+def hash_reset_code(
+    code: str
+) -> str:
 
     return hashlib.sha256(
         code.encode("utf-8")
     ).hexdigest()
 
 
-# ==========================================
-# VERIFY RESET CODE
-# ==========================================
-
 def verify_reset_code(
     code: str,
     code_hash: str
-):
-    """
-    Verify a supplied reset code against
-    its stored hash.
-    """
+) -> bool:
 
-    supplied_hash = hash_reset_code(
-        code
+    calculated_hash = (
+        hash_reset_code(code)
     )
 
     return secrets.compare_digest(
-        supplied_hash,
+        calculated_hash,
         code_hash
     )
 
-# =========================================================
-# EMAIL VERIFICATION CODE
-# =========================================================
+
+# ==========================================
+# EMAIL VERIFICATION
+# ==========================================
 
 EMAIL_VERIFICATION_EXPIRE_MINUTES = 10
 
 
-def generate_email_verification_code():
-    """
-    Generate a cryptographically secure 6-digit verification code.
-    """
-    return f"{secrets.randbelow(1_000_000):06d}"
+def generate_email_verification_code() -> str:
+
+    return f"{secrets.randbelow(1000000):06d}"
 
 
-def hash_email_verification_code(code: str):
-    """
-    Store only the SHA-256 hash of the verification code.
-    """
-    return hashlib.sha256(code.encode("utf-8")).hexdigest()
+def hash_email_verification_code(
+    code: str
+) -> str:
+
+    return hashlib.sha256(
+        code.encode("utf-8")
+    ).hexdigest()
 
 
-def verify_email_verification_code(code: str, code_hash: str):
-    """
-    Safely compare the supplied code with the stored hash.
-    """
-    supplied_hash = hash_email_verification_code(code)
+def verify_email_verification_code(
+    code: str,
+    code_hash: str
+) -> bool:
+
+    calculated_hash = (
+        hash_email_verification_code(code)
+    )
 
     return secrets.compare_digest(
-        supplied_hash,
+        calculated_hash,
         code_hash
     )
 
 
+# ==========================================
+# PASSWORD CHANGE VERIFICATION
+# ==========================================
+
+PASSWORD_CHANGE_CODE_EXPIRE_MINUTES = 10
+
+
+def generate_password_change_code() -> str:
+
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+def hash_password_change_code(
+    code: str
+) -> str:
+
+    return hashlib.sha256(
+        code.encode("utf-8")
+    ).hexdigest()
+
+
+def verify_password_change_code(
+    code: str,
+    code_hash: str
+) -> bool:
+
+    calculated_hash = (
+        hash_password_change_code(code)
+    )
+
+    return secrets.compare_digest(
+        calculated_hash,
+        code_hash
+    )
+
+
+# ==========================================
+# EMAIL CHANGE VERIFICATION
+# ==========================================
+
+EMAIL_CHANGE_CODE_EXPIRE_MINUTES = 10
+
+
+def generate_email_change_code() -> str:
+
+    return f"{secrets.randbelow(1000000):06d}"
+
+
+def hash_email_change_code(
+    code: str
+) -> str:
+
+    return hashlib.sha256(
+        code.encode("utf-8")
+    ).hexdigest()
+
+
+def verify_email_change_code(
+    code: str,
+    code_hash: str
+) -> bool:
+
+    calculated_hash = (
+        hash_email_change_code(code)
+    )
+
+    return secrets.compare_digest(
+        calculated_hash,
+        code_hash
+    )

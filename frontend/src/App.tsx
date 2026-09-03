@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+
 import "./App.css";
 
 interface Message {
@@ -41,16 +42,8 @@ interface AuthResponse {
   student_name: string;
 }
 
-type AuthMode =
-  | "login"
-  | "register"
-  | "forgot"
-  | "verify-email";
-
-type ForgotStep =
-  | "request"
-  | "verify"
-  | "reset";
+type AuthMode = "login" | "register" | "forgot" | "verify-email";
+type ForgotStep = "request" | "verify" | "reset";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -59,67 +52,40 @@ function App() {
   // AUTHENTICATION
   // ========================================
 
-  const [authMode, setAuthMode] =
-    useState<AuthMode>("login");
-
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [forgotStep, setForgotStep] =
     useState<ForgotStep>("request");
 
-  const [username, setUsername] =
-    useState("");
-
-  const [password, setPassword] =
-    useState("");
-
-  const [studentId, setStudentId] =
-    useState("");
-
-  const [email, setEmail] =
-    useState("");
-
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [email, setEmail] = useState("");
   const [confirmRegisterPassword, setConfirmRegisterPassword] =
     useState("");
 
-  const [showPassword, setShowPassword] =
-    useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
   const [showConfirmRegisterPassword, setShowConfirmRegisterPassword] =
     useState(false);
 
   const [showForgotPasswordLink, setShowForgotPasswordLink] =
     useState(false);
 
-  const [authLoading, setAuthLoading] =
-    useState(false);
-
-  const [authError, setAuthError] =
-    useState("");
-
-  const [authSuccess, setAuthSuccess] =
-    useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [authSuccess, setAuthSuccess] = useState("");
 
   // ========================================
   // FORGOT PASSWORD
   // ========================================
 
-  const [forgotUsername, setForgotUsername] =
-    useState("");
-
-  const [forgotEmail, setForgotEmail] =
-    useState("");
-
-  const [forgotCode, setForgotCode] =
-    useState("");
-
-  const [resetPassword, setResetPassword] =
-    useState("");
-
+  const [forgotUsername, setForgotUsername] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotCode, setForgotCode] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
   const [confirmResetPassword, setConfirmResetPassword] =
     useState("");
 
-  const [showResetPassword, setShowResetPassword] =
-    useState(false);
-
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [showConfirmResetPassword, setShowConfirmResetPassword] =
     useState(false);
 
@@ -129,40 +95,32 @@ function App() {
 
   const [verificationUsername, setVerificationUsername] =
     useState("");
-
-  const [verificationEmail, setVerificationEmail] =
-    useState("");
-
-  const [verificationCode, setVerificationCode] =
-    useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
 
   // ========================================
   // AUTH TOKEN
   // ========================================
 
-  const [token, setToken] =
-    useState<string | null>(
-      localStorage.getItem("student_ai_token")
-    );
+  const [token, setToken] = useState<string | null>(
+    localStorage.getItem("student_ai_token")
+  );
 
   // ========================================
   // STUDENT
   // ========================================
 
-  const [studentName, setStudentName] =
-    useState(
-      localStorage.getItem("student_ai_name") || ""
-    );
+  const [studentName, setStudentName] = useState(
+    localStorage.getItem("student_ai_name") || ""
+  );
 
-  const [savedStudentId, setSavedStudentId] =
-    useState(
-      localStorage.getItem("student_ai_id") || ""
-    );
+  const [savedStudentId, setSavedStudentId] = useState(
+    localStorage.getItem("student_ai_id") || ""
+  );
 
-  const [savedUsername, setSavedUsername] =
-    useState(
-      localStorage.getItem("student_ai_username") || ""
-    );
+  const [savedUsername, setSavedUsername] = useState(
+    localStorage.getItem("student_ai_username") || ""
+  );
 
   // ========================================
   // DASHBOARD
@@ -171,18 +129,14 @@ function App() {
   const [dashboard, setDashboard] =
     useState<DashboardData | null>(null);
 
-  const [dashboardLoading, setDashboardLoading] =
-    useState(false);
-
-  const [dashboardError, setDashboardError] =
-    useState("");
+  const [dashboardLoading, setDashboardLoading] = useState(false);
+  const [dashboardError, setDashboardError] = useState("");
 
   // ========================================
   // NAVIGATION
   // ========================================
 
-  const [activeSection, setActiveSection] =
-    useState("dashboard");
+  const [activeSection, setActiveSection] = useState("dashboard");
 
   const navigateToSection = (
     section: string,
@@ -204,35 +158,39 @@ function App() {
   // PROFILE
   // ========================================
 
-  const [isProfileOpen, setIsProfileOpen] =
-    useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const [isChangePasswordOpen, setIsChangePasswordOpen] =
+    useState(false);
+
+  const [isChangeEmailOpen, setIsChangeEmailOpen] =
     useState(false);
 
   // ========================================
   // CHANGE PASSWORD
   // ========================================
 
-  const [currentPassword, setCurrentPassword] =
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [passwordVerificationCode, setPasswordVerificationCode] =
     useState("");
 
-  const [newPassword, setNewPassword] =
-    useState("");
-
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
+  const [passwordCodeSent, setPasswordCodeSent] = useState(false);
 
   const [showCurrentPassword, setShowCurrentPassword] =
     useState(false);
 
-  const [showNewPassword, setShowNewPassword] =
-    useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   const [showConfirmPassword, setShowConfirmPassword] =
     useState(false);
 
   const [passwordChangeLoading, setPasswordChangeLoading] =
+    useState(false);
+
+  const [passwordCodeSending, setPasswordCodeSending] =
     useState(false);
 
   const [passwordChangeError, setPasswordChangeError] =
@@ -242,26 +200,41 @@ function App() {
     useState("");
 
   // ========================================
+  // CHANGE EMAIL
+  // ========================================
+
+  const [newEmail, setNewEmail] = useState("");
+
+  const [emailVerificationCode, setEmailVerificationCode] =
+    useState("");
+
+  const [emailCodeSent, setEmailCodeSent] = useState(false);
+
+  const [emailChangeLoading, setEmailChangeLoading] =
+    useState(false);
+
+  const [emailCodeSending, setEmailCodeSending] =
+    useState(false);
+
+  const [emailChangeError, setEmailChangeError] =
+    useState("");
+
+  const [emailChangeSuccess, setEmailChangeSuccess] =
+    useState("");
+
+  // ========================================
   // CHAT
   // ========================================
 
-  const [isChatOpen, setIsChatOpen] =
-    useState(false);
-
-  const [message, setMessage] =
-    useState("");
-
-  const [messages, setMessages] =
-    useState<Message[]>([]);
-
-  const [loading, setLoading] =
-    useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [message, setMessage] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [context, setContext] =
     useState<AgentContext | null>(null);
 
-  const chatEndRef =
-    useRef<HTMLDivElement | null>(null);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
 
   // ========================================
   // AUTH INPUT REFS
@@ -287,6 +260,28 @@ function App() {
   }, [messages, loading, isChatOpen]);
 
   // ========================================
+  // RESTORE SESSION AFTER PAGE REFRESH
+  // ========================================
+
+  useEffect(() => {
+    const storedToken =
+      localStorage.getItem("student_ai_token");
+
+    const storedStudentName =
+      localStorage.getItem("student_ai_name");
+
+    if (storedToken && storedStudentName) {
+      setToken(storedToken);
+      setStudentName(storedStudentName);
+
+      loadDashboard(
+        storedStudentName,
+        storedToken
+      );
+    }
+  }, []);
+
+  // ========================================
   // RESET AUTH FLOW
   // ========================================
 
@@ -296,6 +291,7 @@ function App() {
     setForgotUsername("");
     setForgotEmail("");
     setForgotCode("");
+
     setResetPassword("");
     setConfirmResetPassword("");
 
@@ -308,6 +304,7 @@ function App() {
 
     setShowPassword(false);
     setShowConfirmRegisterPassword(false);
+
     setShowResetPassword(false);
     setShowConfirmResetPassword(false);
 
@@ -322,9 +319,7 @@ function App() {
   // SWITCH AUTH MODE
   // ========================================
 
-  const switchAuthMode = (
-    mode: AuthMode
-  ) => {
+  const switchAuthMode = (mode: AuthMode) => {
     setAuthMode(mode);
 
     if (mode !== "forgot") {
@@ -364,7 +359,6 @@ function App() {
 
     setMessages([]);
     setContext(null);
-
     setIsChatOpen(false);
 
     setUsername("");
@@ -379,13 +373,10 @@ function App() {
 
     setIsProfileOpen(false);
     setIsChangePasswordOpen(false);
+    setIsChangeEmailOpen(false);
 
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-
-    setPasswordChangeError("");
-    setPasswordChangeSuccess("");
+    resetPasswordForm();
+    resetEmailChangeForm();
 
     setActiveSection("dashboard");
   };
@@ -506,14 +497,11 @@ function App() {
       !password.trim() ||
       !confirmRegisterPassword.trim()
     ) {
-      setAuthError(
-        "Please fill in all fields."
-      );
+      setAuthError("Please fill in all fields.");
       return;
     }
 
-    const numericStudentId =
-      Number(studentId);
+    const numericStudentId = Number(studentId);
 
     if (
       !Number.isInteger(numericStudentId) ||
@@ -547,8 +535,7 @@ function App() {
     }
 
     if (
-      password !==
-      confirmRegisterPassword
+      password !== confirmRegisterPassword
     ) {
       setAuthError(
         "Password and confirmation do not match."
@@ -599,6 +586,7 @@ function App() {
 
       setShowPassword(false);
       setShowConfirmRegisterPassword(false);
+
       setShowForgotPasswordLink(false);
     } catch (error) {
       console.error(error);
@@ -644,14 +632,14 @@ function App() {
             body: JSON.stringify({
               username:
                 verificationUsername.trim(),
+
               email:
                 verificationEmail.trim(),
             }),
           }
         );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
@@ -719,14 +707,14 @@ function App() {
           body: JSON.stringify({
             username:
               verificationUsername.trim(),
+
             verification_code:
               verificationCode.trim(),
           }),
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -765,246 +753,246 @@ function App() {
   // FORGOT PASSWORD - REQUEST CODE
   // ========================================
 
-  const handleForgotPassword =
-    async () => {
-      if (
-        !forgotUsername.trim() ||
-        !forgotEmail.trim()
-      ) {
-        setAuthError(
-          "Please enter your username and registered email."
-        );
-        return;
-      }
+  const handleForgotPassword = async () => {
+    if (
+      !forgotUsername.trim() ||
+      !forgotEmail.trim()
+    ) {
+      setAuthError(
+        "Please enter your username and registered email."
+      );
+      return;
+    }
 
-      setAuthLoading(true);
-      setAuthError("");
-      setAuthSuccess("");
+    setAuthLoading(true);
+    setAuthError("");
+    setAuthSuccess("");
 
-      try {
-        const response = await fetch(
-          `${API_URL}/auth/forgot-password`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              username:
-                forgotUsername.trim(),
-              email:
-                forgotEmail.trim(),
-            }),
-          }
-        );
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username:
+              forgotUsername.trim(),
 
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.detail ||
-              "Unable to process password recovery."
-          );
+            email:
+              forgotEmail.trim(),
+          }),
         }
+      );
 
-        setForgotStep("verify");
+      const data = await response.json();
 
-        setAuthSuccess(
-          "If the account details are valid, a verification code has been sent to your email."
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Unable to process password recovery."
         );
-      } catch (error) {
-        console.error(error);
-
-        setAuthError(
-          error instanceof Error
-            ? error.message
-            : "Unable to process password recovery."
-        );
-      } finally {
-        setAuthLoading(false);
       }
-    };
+
+      setForgotStep("verify");
+
+      setAuthSuccess(
+        "If the account details are valid, a verification code has been sent to your email."
+      );
+    } catch (error) {
+      console.error(error);
+
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : "Unable to process password recovery."
+      );
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   // ========================================
   // VERIFY RESET CODE
   // ========================================
 
-  const handleVerifyResetCode =
-    async () => {
-      if (
-        !forgotUsername.trim() ||
-        !forgotCode.trim()
-      ) {
-        setAuthError(
-          "Please enter your username and verification code."
-        );
-        return;
-      }
+  const handleVerifyResetCode = async () => {
+    if (
+      !forgotUsername.trim() ||
+      !forgotCode.trim()
+    ) {
+      setAuthError(
+        "Please enter your username and verification code."
+      );
+      return;
+    }
 
-      if (
-        !/^\d{6}$/.test(
-          forgotCode.trim()
-        )
-      ) {
-        setAuthError(
-          "Verification code must be 6 digits."
-        );
-        return;
-      }
+    if (
+      !/^\d{6}$/.test(
+        forgotCode.trim()
+      )
+    ) {
+      setAuthError(
+        "Verification code must be 6 digits."
+      );
+      return;
+    }
 
-      setAuthLoading(true);
-      setAuthError("");
-      setAuthSuccess("");
+    setAuthLoading(true);
+    setAuthError("");
+    setAuthSuccess("");
 
-      try {
-        const response = await fetch(
-          `${API_URL}/auth/verify-reset-code`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              username:
-                forgotUsername.trim(),
-              verification_code:
-                forgotCode.trim(),
-            }),
-          }
-        );
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/verify-reset-code`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username:
+              forgotUsername.trim(),
 
-        const data =
-          await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.detail ||
-              "Invalid or expired verification code."
-          );
+            verification_code:
+              forgotCode.trim(),
+          }),
         }
+      );
 
-        setForgotStep("reset");
+      const data = await response.json();
 
-        setAuthSuccess(
-          "Code verified. You can now create a new password."
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Invalid or expired verification code."
         );
-      } catch (error) {
-        console.error(error);
-
-        setAuthError(
-          error instanceof Error
-            ? error.message
-            : "Unable to verify reset code."
-        );
-      } finally {
-        setAuthLoading(false);
       }
-    };
+
+      setForgotStep("reset");
+
+      setAuthSuccess(
+        "Code verified. You can now create a new password."
+      );
+    } catch (error) {
+      console.error(error);
+
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : "Unable to verify reset code."
+      );
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   // ========================================
   // RESET PASSWORD
   // ========================================
 
-  const handleResetPassword =
-    async () => {
-      setAuthError("");
-      setAuthSuccess("");
+  const handleResetPassword = async () => {
+    setAuthError("");
+    setAuthSuccess("");
 
-      if (
-        !forgotUsername.trim() ||
-        !forgotCode.trim() ||
-        !resetPassword ||
-        !confirmResetPassword
-      ) {
-        setAuthError(
-          "Please fill in all fields."
-        );
-        return;
-      }
+    if (
+      !forgotUsername.trim() ||
+      !forgotCode.trim() ||
+      !resetPassword ||
+      !confirmResetPassword
+    ) {
+      setAuthError(
+        "Please fill in all fields."
+      );
+      return;
+    }
 
-      if (resetPassword.length < 6) {
-        setAuthError(
-          "New password must be at least 6 characters."
-        );
-        return;
-      }
+    if (resetPassword.length < 6) {
+      setAuthError(
+        "New password must be at least 6 characters."
+      );
+      return;
+    }
 
-      if (
-        resetPassword !==
-        confirmResetPassword
-      ) {
-        setAuthError(
-          "New password and confirmation do not match."
-        );
-        return;
-      }
+    if (
+      resetPassword !==
+      confirmResetPassword
+    ) {
+      setAuthError(
+        "New password and confirmation do not match."
+      );
+      return;
+    }
 
-      setAuthLoading(true);
+    setAuthLoading(true);
 
-      try {
-        const response = await fetch(
-          `${API_URL}/auth/reset-password`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              username:
-                forgotUsername.trim(),
-              verification_code:
-                forgotCode.trim(),
-              new_password:
-                resetPassword,
-            }),
-          }
-        );
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/reset-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username:
+              forgotUsername.trim(),
 
-        const data =
-          await response.json();
+            verification_code:
+              forgotCode.trim(),
 
-        if (!response.ok) {
-          throw new Error(
-            data.detail ||
-              "Unable to reset password."
-          );
+            new_password:
+              resetPassword,
+          }),
         }
+      );
 
-        setAuthMode("login");
-        setForgotStep("request");
+      const data = await response.json();
 
-        setUsername(
-          forgotUsername.trim()
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Unable to reset password."
         );
-
-        setPassword("");
-
-        setForgotUsername("");
-        setForgotEmail("");
-        setForgotCode("");
-        setResetPassword("");
-        setConfirmResetPassword("");
-
-        setShowResetPassword(false);
-        setShowConfirmResetPassword(false);
-        setShowForgotPasswordLink(false);
-
-        setAuthSuccess(
-          "Password reset successfully! You can now login with your new password."
-        );
-      } catch (error) {
-        console.error(error);
-
-        setAuthError(
-          error instanceof Error
-            ? error.message
-            : "Unable to reset password."
-        );
-      } finally {
-        setAuthLoading(false);
       }
-    };
+
+      setAuthMode("login");
+      setForgotStep("request");
+
+      setUsername(
+        forgotUsername.trim()
+      );
+
+      setPassword("");
+
+      setForgotUsername("");
+      setForgotEmail("");
+      setForgotCode("");
+
+      setResetPassword("");
+      setConfirmResetPassword("");
+
+      setShowResetPassword(false);
+      setShowConfirmResetPassword(false);
+
+      setShowForgotPasswordLink(false);
+
+      setAuthSuccess(
+        "Password reset successfully! You can now login with your new password."
+      );
+    } catch (error) {
+      console.error(error);
+
+      setAuthError(
+        error instanceof Error
+          ? error.message
+          : "Unable to reset password."
+      );
+    } finally {
+      setAuthLoading(false);
+    }
+  };
 
   // ========================================
   // LOAD DASHBOARD
@@ -1030,8 +1018,7 @@ function App() {
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -1044,19 +1031,16 @@ function App() {
     } catch (error) {
       console.error(error);
 
+      const errorMessage =
+        error instanceof Error
+          ? error.message.toLowerCase()
+          : "";
+
       if (
-        error instanceof Error &&
-        (
-          error.message
-            .toLowerCase()
-            .includes("token") ||
-          error.message
-            .toLowerCase()
-            .includes("authenticated") ||
-          error.message
-            .toLowerCase()
-            .includes("not authorized")
-        )
+        errorMessage.includes("token") ||
+        errorMessage.includes("authenticated") ||
+        errorMessage.includes("not authorized") ||
+        errorMessage.includes("unauthorized")
       ) {
         logout();
         return;
@@ -1081,18 +1065,26 @@ function App() {
     setNewPassword("");
     setConfirmPassword("");
 
+    setPasswordVerificationCode("");
+    setPasswordCodeSent(false);
+
     setShowCurrentPassword(false);
     setShowNewPassword(false);
     setShowConfirmPassword(false);
 
     setPasswordChangeError("");
     setPasswordChangeSuccess("");
+
+    setPasswordChangeLoading(false);
+    setPasswordCodeSending(false);
   };
 
   const openChangePassword = () => {
     resetPasswordForm();
 
     setIsProfileOpen(false);
+    setIsChangeEmailOpen(false);
+
     setIsChangePasswordOpen(true);
   };
 
@@ -1101,45 +1093,18 @@ function App() {
     setIsChangePasswordOpen(false);
   };
 
-  const handleChangePassword =
+  // ========================================
+  // SEND PASSWORD CHANGE CODE
+  // ========================================
+
+  const handleSendPasswordChangeCode =
     async () => {
       setPasswordChangeError("");
       setPasswordChangeSuccess("");
 
-      if (
-        !currentPassword ||
-        !newPassword ||
-        !confirmPassword
-      ) {
+      if (!currentPassword) {
         setPasswordChangeError(
-          "Please fill in all password fields."
-        );
-        return;
-      }
-
-      if (newPassword.length < 6) {
-        setPasswordChangeError(
-          "New password must be at least 6 characters."
-        );
-        return;
-      }
-
-      if (
-        newPassword !==
-        confirmPassword
-      ) {
-        setPasswordChangeError(
-          "New password and confirmation do not match."
-        );
-        return;
-      }
-
-      if (
-        currentPassword ===
-        newPassword
-      ) {
-        setPasswordChangeError(
-          "New password must be different from your current password."
+          "Please enter your current password."
         );
         return;
       }
@@ -1151,57 +1116,49 @@ function App() {
         return;
       }
 
-      setPasswordChangeLoading(true);
+      setPasswordCodeSending(true);
 
       try {
         const response = await fetch(
-          `${API_URL}/auth/change-password`,
+          `${API_URL}/auth/change-password/request`,
           {
             method: "POST",
             headers: {
               "Content-Type":
                 "application/json",
+
               Authorization:
                 `Bearer ${token}`,
             },
             body: JSON.stringify({
               current_password:
                 currentPassword,
-              new_password:
-                newPassword,
             }),
           }
         );
 
-        const data =
-          await response.json();
+        const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
             data.detail ||
-              "Unable to change password."
+              "Unable to send verification code."
           );
         }
 
+        setPasswordCodeSent(true);
+        setPasswordVerificationCode("");
+
         setPasswordChangeSuccess(
-          data.message ||
-            "Password changed successfully."
+          "A verification code has been sent to your registered email."
         );
-
-        setCurrentPassword("");
-        setNewPassword("");
-        setConfirmPassword("");
-
-        setShowCurrentPassword(false);
-        setShowNewPassword(false);
-        setShowConfirmPassword(false);
       } catch (error) {
         console.error(error);
 
         const errorMessage =
           error instanceof Error
             ? error.message
-            : "Unable to change password.";
+            : "Unable to send verification code.";
 
         if (
           errorMessage
@@ -1209,7 +1166,10 @@ function App() {
             .includes("authenticated") ||
           errorMessage
             .toLowerCase()
-            .includes("token")
+            .includes("token") ||
+          errorMessage
+            .toLowerCase()
+            .includes("unauthorized")
         ) {
           logout();
           return;
@@ -1219,7 +1179,418 @@ function App() {
           errorMessage
         );
       } finally {
-        setPasswordChangeLoading(false);
+        setPasswordCodeSending(false);
+      }
+    };
+
+  // ========================================
+  // VERIFY + CHANGE PASSWORD
+  // ========================================
+
+  const handleChangePassword = async () => {
+    setPasswordChangeError("");
+    setPasswordChangeSuccess("");
+
+    if (
+      !currentPassword ||
+      !newPassword ||
+      !confirmPassword
+    ) {
+      setPasswordChangeError(
+        "Please fill in all password fields."
+      );
+      return;
+    }
+
+    if (!passwordCodeSent) {
+      setPasswordChangeError(
+        "Please send and verify the email code before changing your password."
+      );
+      return;
+    }
+
+    if (!passwordVerificationCode.trim()) {
+      setPasswordChangeError(
+        "Please enter the verification code sent to your email."
+      );
+      return;
+    }
+
+    if (
+      !/^\d{6}$/.test(
+        passwordVerificationCode.trim()
+      )
+    ) {
+      setPasswordChangeError(
+        "Verification code must be 6 digits."
+      );
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordChangeError(
+        "New password must be at least 6 characters."
+      );
+      return;
+    }
+
+    if (
+      newPassword !==
+      confirmPassword
+    ) {
+      setPasswordChangeError(
+        "New password and confirmation do not match."
+      );
+      return;
+    }
+
+    if (
+      currentPassword ===
+      newPassword
+    ) {
+      setPasswordChangeError(
+        "New password must be different from your current password."
+      );
+      return;
+    }
+
+    if (!token) {
+      setPasswordChangeError(
+        "Your session has expired. Please login again."
+      );
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/auth/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":
+              "application/json",
+
+            Authorization:
+              `Bearer ${token}`,
+          },
+
+          body: JSON.stringify({
+            current_password:
+              currentPassword,
+
+            new_password:
+              newPassword,
+
+            verification_code:
+              passwordVerificationCode.trim(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail ||
+            "Unable to change password."
+        );
+      }
+
+      setPasswordChangeSuccess(
+        data.message ||
+          "Password changed successfully."
+      );
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setPasswordVerificationCode("");
+
+      setPasswordCodeSent(false);
+
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
+    } catch (error) {
+      console.error(error);
+
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Unable to change password.";
+
+      if (
+        errorMessage
+          .toLowerCase()
+          .includes("authenticated") ||
+        errorMessage
+          .toLowerCase()
+          .includes("token") ||
+        errorMessage
+          .toLowerCase()
+          .includes("unauthorized")
+      ) {
+        logout();
+        return;
+      }
+
+      setPasswordChangeError(
+        errorMessage
+      );
+    } finally {
+      setPasswordChangeLoading(false);
+    }
+  };
+
+  // ========================================
+  // CHANGE EMAIL
+  // ========================================
+
+  const resetEmailChangeForm = () => {
+    setNewEmail("");
+    setEmailVerificationCode("");
+
+    setEmailCodeSent(false);
+
+    setEmailChangeLoading(false);
+    setEmailCodeSending(false);
+
+    setEmailChangeError("");
+    setEmailChangeSuccess("");
+  };
+
+  const openChangeEmail = () => {
+    resetEmailChangeForm();
+
+    setIsProfileOpen(false);
+    setIsChangePasswordOpen(false);
+
+    setIsChangeEmailOpen(true);
+  };
+
+  const closeChangeEmail = () => {
+    resetEmailChangeForm();
+    setIsChangeEmailOpen(false);
+  };
+
+  // ========================================
+  // SEND EMAIL CHANGE CODE
+  // ========================================
+
+  const handleRequestEmailChange =
+    async () => {
+      setEmailChangeError("");
+      setEmailChangeSuccess("");
+
+      if (!newEmail.trim()) {
+        setEmailChangeError(
+          "Please enter your new email address."
+        );
+        return;
+      }
+
+      const normalizedEmail =
+        newEmail.trim().toLowerCase();
+
+      if (
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          normalizedEmail
+        )
+      ) {
+        setEmailChangeError(
+          "Please enter a valid email address."
+        );
+        return;
+      }
+
+      if (!token) {
+        setEmailChangeError(
+          "Your session has expired. Please login again."
+        );
+        return;
+      }
+
+      setEmailCodeSending(true);
+
+      try {
+        const response = await fetch(
+          `${API_URL}/auth/change-email/request`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Authorization:
+                `Bearer ${token}`,
+            },
+
+            body: JSON.stringify({
+              new_email:
+                normalizedEmail,
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "Unable to send email verification code."
+          );
+        }
+
+        setNewEmail(normalizedEmail);
+        setEmailVerificationCode("");
+        setEmailCodeSent(true);
+
+        setEmailChangeSuccess(
+          "A verification code has been sent to your new email address."
+        );
+      } catch (error) {
+        console.error(error);
+
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Unable to send email verification code.";
+
+        if (
+          errorMessage
+            .toLowerCase()
+            .includes("authenticated") ||
+          errorMessage
+            .toLowerCase()
+            .includes("token") ||
+          errorMessage
+            .toLowerCase()
+            .includes("unauthorized")
+        ) {
+          logout();
+          return;
+        }
+
+        setEmailChangeError(
+          errorMessage
+        );
+      } finally {
+        setEmailCodeSending(false);
+      }
+    };
+
+  // ========================================
+  // VERIFY EMAIL CHANGE
+  // ========================================
+
+  const handleVerifyEmailChange =
+    async () => {
+      setEmailChangeError("");
+      setEmailChangeSuccess("");
+
+      if (!emailCodeSent) {
+        setEmailChangeError(
+          "Please request a verification code first."
+        );
+        return;
+      }
+
+      if (!emailVerificationCode.trim()) {
+        setEmailChangeError(
+          "Please enter the verification code."
+        );
+        return;
+      }
+
+      if (
+        !/^\d{6}$/.test(
+          emailVerificationCode.trim()
+        )
+      ) {
+        setEmailChangeError(
+          "Verification code must be 6 digits."
+        );
+        return;
+      }
+
+      if (!token) {
+        setEmailChangeError(
+          "Your session has expired. Please login again."
+        );
+        return;
+      }
+
+      setEmailChangeLoading(true);
+
+      try {
+        const response = await fetch(
+          `${API_URL}/auth/change-email/verify`,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Authorization:
+                `Bearer ${token}`,
+            },
+
+            body: JSON.stringify({
+              verification_code:
+                emailVerificationCode.trim(),
+            }),
+          }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.detail ||
+              "Unable to verify email change."
+          );
+        }
+
+        setEmailChangeSuccess(
+          data.message ||
+            "Email address changed successfully."
+        );
+
+        setNewEmail("");
+        setEmailVerificationCode("");
+        setEmailCodeSent(false);
+      } catch (error) {
+        console.error(error);
+
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Unable to verify email change.";
+
+        if (
+          errorMessage
+            .toLowerCase()
+            .includes("authenticated") ||
+          errorMessage
+            .toLowerCase()
+            .includes("token") ||
+          errorMessage
+            .toLowerCase()
+            .includes("unauthorized")
+        ) {
+          logout();
+          return;
+        }
+
+        setEmailChangeError(
+          errorMessage
+        );
+      } finally {
+        setEmailChangeLoading(false);
       }
     };
 
@@ -1255,23 +1626,29 @@ function App() {
         `${API_URL}/chat`,
         {
           method: "POST",
+
           headers: {
             "Content-Type":
               "application/json",
+
             Authorization:
               `Bearer ${token}`,
           },
+
           body: JSON.stringify({
             student_name:
               studentName,
-            message: userMessage,
-            context: context,
+
+            message:
+              userMessage,
+
+            context:
+              context,
           }),
         }
       );
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -1370,11 +1747,6 @@ function App() {
         <div className="auth-background-shape shape-two" />
 
         <div className="auth-card">
-
-          {/* ====================================
-              BRAND
-              ==================================== */}
-
           <div className="auth-brand">
             <div className="auth-logo">
               🤖
@@ -1387,10 +1759,6 @@ function App() {
               </span>
             </div>
           </div>
-
-          {/* ====================================
-              LOGIN / REGISTER
-              ==================================== */}
 
           {(authMode === "login" ||
             authMode === "register") && (
@@ -1417,11 +1785,9 @@ function App() {
                       ? "auth-tab active"
                       : "auth-tab"
                   }
-                  onClick={() => {
-                    switchAuthMode(
-                      "login"
-                    );
-                  }}
+                  onClick={() =>
+                    switchAuthMode("login")
+                  }
                 >
                   Login
                 </button>
@@ -1429,16 +1795,13 @@ function App() {
                 <button
                   type="button"
                   className={
-                    authMode ===
-                    "register"
+                    authMode === "register"
                       ? "auth-tab active"
                       : "auth-tab"
                   }
-                  onClick={() => {
-                    switchAuthMode(
-                      "register"
-                    );
-                  }}
+                  onClick={() =>
+                    switchAuthMode("register")
+                  }
                 >
                   Register
                 </button>
@@ -1446,40 +1809,27 @@ function App() {
             </>
           )}
 
-          {/* ====================================
-              FORGOT PASSWORD HEADING
-              ==================================== */}
-
           {authMode === "forgot" && (
             <div className="auth-heading">
               <h2>
-                {forgotStep ===
-                "request"
+                {forgotStep === "request"
                   ? "Forgot your password?"
-                  : forgotStep ===
-                    "verify"
-                    ? "Verify your code"
-                    : "Create a new password"}
+                  : forgotStep === "verify"
+                  ? "Verify your code"
+                  : "Create a new password"}
               </h2>
 
               <p>
-                {forgotStep ===
-                "request"
+                {forgotStep === "request"
                   ? "Enter your username and registered email to recover your account."
-                  : forgotStep ===
-                    "verify"
-                    ? "Enter the 6-digit verification code sent to your email."
-                    : "Choose a new password for your Student AI account."}
+                  : forgotStep === "verify"
+                  ? "Enter the 6-digit verification code sent to your email."
+                  : "Choose a new password for your Student AI account."}
               </p>
             </div>
           )}
 
-          {/* ====================================
-              EMAIL VERIFICATION HEADING
-              ==================================== */}
-
-          {authMode ===
-            "verify-email" && (
+          {authMode === "verify-email" && (
             <div className="auth-heading">
               <h2>
                 Verify your email
@@ -1490,10 +1840,6 @@ function App() {
               </p>
             </div>
           )}
-
-          {/* ====================================
-              MESSAGES
-              ==================================== */}
 
           {authError && (
             <div className="auth-message error">
@@ -1509,9 +1855,7 @@ function App() {
             </div>
           )}
 
-          {/* ====================================
-              LOGIN
-              ==================================== */}
+          {/* LOGIN */}
 
           {authMode === "login" && (
             <>
@@ -1538,9 +1882,7 @@ function App() {
                       handleUsernameKeyDown
                     }
                     autoComplete="username"
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
                 </div>
               </div>
@@ -1572,9 +1914,7 @@ function App() {
                       handlePasswordKeyDown
                     }
                     autoComplete="current-password"
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
 
                   <button
@@ -1590,9 +1930,7 @@ function App() {
                         ? "Hide password"
                         : "Show password"
                     }
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   >
                     {showPassword
                       ? "🙈"
@@ -1601,28 +1939,25 @@ function App() {
                 </div>
               </div>
 
-              {/* Forgot password appears ONLY after failed login */}
               {showForgotPasswordLink && (
                 <div className="auth-forgot-row">
                   <button
                     type="button"
                     className="auth-link-button"
                     onClick={() => {
-                      setAuthMode(
-                        "forgot"
-                      );
+                      setAuthMode("forgot");
                       setForgotStep(
                         "request"
                       );
+
                       setForgotUsername(
                         username.trim()
                       );
+
                       setAuthError("");
                       setAuthSuccess("");
                     }}
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   >
                     Forgot Password?
                   </button>
@@ -1633,9 +1968,7 @@ function App() {
                 type="button"
                 className="auth-submit"
                 onClick={handleLogin}
-                disabled={
-                  authLoading
-                }
+                disabled={authLoading}
               >
                 {authLoading ? (
                   <>
@@ -1658,7 +1991,11 @@ function App() {
                     setAuthMode(
                       "verify-email"
                     );
-                    setShowForgotPasswordLink(false);
+
+                    setShowForgotPasswordLink(
+                      false
+                    );
+
                     setAuthError("");
                     setAuthSuccess("");
                   }}
@@ -1676,7 +2013,11 @@ function App() {
                     setAuthMode(
                       "register"
                     );
-                    setShowForgotPasswordLink(false);
+
+                    setShowForgotPasswordLink(
+                      false
+                    );
+
                     setAuthError("");
                     setAuthSuccess("");
                   }}
@@ -1687,12 +2028,9 @@ function App() {
             </>
           )}
 
-          {/* ====================================
-              REGISTER
-              ==================================== */}
+          {/* REGISTER */}
 
-          {authMode ===
-            "register" && (
+          {authMode === "register" && (
             <>
               <div className="form-group">
                 <label htmlFor="student-id">
@@ -1716,9 +2054,7 @@ function App() {
                     onKeyDown={
                       handleStudentIdKeyDown
                     }
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
                 </div>
               </div>
@@ -1746,9 +2082,7 @@ function App() {
                       handleUsernameKeyDown
                     }
                     autoComplete="username"
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
                 </div>
               </div>
@@ -1772,9 +2106,7 @@ function App() {
                       )
                     }
                     autoComplete="email"
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
                 </div>
 
@@ -1810,9 +2142,7 @@ function App() {
                       handlePasswordKeyDown
                     }
                     autoComplete="new-password"
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
 
                   <button
@@ -1823,9 +2153,7 @@ function App() {
                         (prev) => !prev
                       )
                     }
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                     aria-label={
                       showPassword
                         ? "Hide password"
@@ -1867,9 +2195,7 @@ function App() {
                       handlePasswordKeyDown
                     }
                     autoComplete="new-password"
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
 
                   <button
@@ -1880,9 +2206,7 @@ function App() {
                         (prev) => !prev
                       )
                     }
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                     aria-label={
                       showConfirmRegisterPassword
                         ? "Hide password"
@@ -1903,12 +2227,8 @@ function App() {
               <button
                 type="button"
                 className="auth-submit"
-                onClick={
-                  handleRegister
-                }
-                disabled={
-                  authLoading
-                }
+                onClick={handleRegister}
+                disabled={authLoading}
               >
                 {authLoading ? (
                   <>
@@ -1916,9 +2236,7 @@ function App() {
                     Creating account...
                   </>
                 ) : (
-                  <>
-                    Create Account →
-                  </>
+                  <>Create Account →</>
                 )}
               </button>
 
@@ -1928,10 +2246,12 @@ function App() {
                 <button
                   type="button"
                   onClick={() => {
-                    setAuthMode(
-                      "login"
+                    setAuthMode("login");
+
+                    setShowForgotPasswordLink(
+                      false
                     );
-                    setShowForgotPasswordLink(false);
+
                     setAuthError("");
                     setAuthSuccess("");
                   }}
@@ -1942,14 +2262,10 @@ function App() {
             </>
           )}
 
-          {/* ====================================
-              FORGOT PASSWORD - REQUEST
-              ==================================== */}
+          {/* FORGOT PASSWORD - REQUEST */}
 
-          {authMode ===
-            "forgot" &&
-            forgotStep ===
-              "request" && (
+          {authMode === "forgot" &&
+            forgotStep === "request" && (
               <>
                 <div className="form-group">
                   <label htmlFor="forgot-username">
@@ -1972,9 +2288,7 @@ function App() {
                         )
                       }
                       autoComplete="username"
-                      disabled={
-                        authLoading
-                      }
+                      disabled={authLoading}
                     />
                   </div>
                 </div>
@@ -2000,9 +2314,7 @@ function App() {
                         )
                       }
                       autoComplete="email"
-                      disabled={
-                        authLoading
-                      }
+                      disabled={authLoading}
                     />
                   </div>
                 </div>
@@ -2013,9 +2325,7 @@ function App() {
                   onClick={
                     handleForgotPassword
                   }
-                  disabled={
-                    authLoading
-                  }
+                  disabled={authLoading}
                 >
                   {authLoading ? (
                     <>
@@ -2033,30 +2343,26 @@ function App() {
                   type="button"
                   className="auth-back-button"
                   onClick={() => {
-                    setAuthMode(
-                      "login"
+                    setAuthMode("login");
+
+                    setShowForgotPasswordLink(
+                      false
                     );
-                    setShowForgotPasswordLink(false);
+
                     setAuthError("");
                     setAuthSuccess("");
                   }}
-                  disabled={
-                    authLoading
-                  }
+                  disabled={authLoading}
                 >
                   ← Back to Login
                 </button>
               </>
             )}
 
-          {/* ====================================
-              FORGOT PASSWORD - VERIFY
-              ==================================== */}
+          {/* FORGOT PASSWORD - VERIFY */}
 
-          {authMode ===
-            "forgot" &&
-            forgotStep ===
-              "verify" && (
+          {authMode === "forgot" &&
+            forgotStep === "verify" && (
               <>
                 <div className="verification-email-info">
                   <div className="verification-icon">
@@ -2088,9 +2394,7 @@ function App() {
                       inputMode="numeric"
                       maxLength={6}
                       placeholder="Enter 6-digit code"
-                      value={
-                        forgotCode
-                      }
+                      value={forgotCode}
                       onChange={(event) =>
                         setForgotCode(
                           event.target.value.replace(
@@ -2099,9 +2403,7 @@ function App() {
                           )
                         )
                       }
-                      disabled={
-                        authLoading
-                      }
+                      disabled={authLoading}
                     />
                   </div>
                 </div>
@@ -2112,9 +2414,7 @@ function App() {
                   onClick={
                     handleVerifyResetCode
                   }
-                  disabled={
-                    authLoading
-                  }
+                  disabled={authLoading}
                 >
                   {authLoading ? (
                     <>
@@ -2122,9 +2422,7 @@ function App() {
                       Verifying...
                     </>
                   ) : (
-                    <>
-                      Verify Code →
-                    </>
+                    <>Verify Code →</>
                   )}
                 </button>
 
@@ -2136,13 +2434,13 @@ function App() {
                       setForgotStep(
                         "request"
                       );
+
                       setForgotCode("");
+
                       setAuthError("");
                       setAuthSuccess("");
                     }}
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   >
                     ← Change Details
                   </button>
@@ -2153,9 +2451,7 @@ function App() {
                     onClick={
                       handleForgotPassword
                     }
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   >
                     Resend Code
                   </button>
@@ -2163,14 +2459,10 @@ function App() {
               </>
             )}
 
-          {/* ====================================
-              FORGOT PASSWORD - RESET
-              ==================================== */}
+          {/* FORGOT PASSWORD - RESET */}
 
-          {authMode ===
-            "forgot" &&
-            forgotStep ===
-              "reset" && (
+          {authMode === "forgot" &&
+            forgotStep === "reset" && (
               <>
                 <div className="verified-code-badge">
                   <span>✓</span>
@@ -2202,9 +2494,7 @@ function App() {
                         )
                       }
                       autoComplete="new-password"
-                      disabled={
-                        authLoading
-                      }
+                      disabled={authLoading}
                     />
 
                     <button
@@ -2212,13 +2502,10 @@ function App() {
                       className="password-toggle"
                       onClick={() =>
                         setShowResetPassword(
-                          (prev) =>
-                            !prev
+                          (prev) => !prev
                         )
                       }
-                      disabled={
-                        authLoading
-                      }
+                      disabled={authLoading}
                     >
                       {showResetPassword
                         ? "🙈"
@@ -2252,9 +2539,7 @@ function App() {
                         )
                       }
                       autoComplete="new-password"
-                      disabled={
-                        authLoading
-                      }
+                      disabled={authLoading}
                     />
 
                     <button
@@ -2262,13 +2547,10 @@ function App() {
                       className="password-toggle"
                       onClick={() =>
                         setShowConfirmResetPassword(
-                          (prev) =>
-                            !prev
+                          (prev) => !prev
                         )
                       }
-                      disabled={
-                        authLoading
-                      }
+                      disabled={authLoading}
                     >
                       {showConfirmResetPassword
                         ? "🙈"
@@ -2287,9 +2569,7 @@ function App() {
                   onClick={
                     handleResetPassword
                   }
-                  disabled={
-                    authLoading
-                  }
+                  disabled={authLoading}
                 >
                   {authLoading ? (
                     <>
@@ -2297,20 +2577,15 @@ function App() {
                       Resetting password...
                     </>
                   ) : (
-                    <>
-                      Reset Password →
-                    </>
+                    <>Reset Password →</>
                   )}
                 </button>
               </>
             )}
 
-          {/* ====================================
-              EMAIL VERIFICATION
-              ==================================== */}
+          {/* EMAIL VERIFICATION */}
 
-          {authMode ===
-            "verify-email" && (
+          {authMode === "verify-email" && (
             <>
               <div className="form-group">
                 <label htmlFor="verification-username">
@@ -2333,9 +2608,7 @@ function App() {
                       )
                     }
                     autoComplete="username"
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
                 </div>
               </div>
@@ -2361,9 +2634,7 @@ function App() {
                       )
                     }
                     autoComplete="email"
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
                 </div>
               </div>
@@ -2374,9 +2645,7 @@ function App() {
                 onClick={
                   handleSendEmailVerification
                 }
-                disabled={
-                  authLoading
-                }
+                disabled={authLoading}
               >
                 {authLoading ? (
                   <>
@@ -2421,9 +2690,7 @@ function App() {
                         )
                       )
                     }
-                    disabled={
-                      authLoading
-                    }
+                    disabled={authLoading}
                   />
                 </div>
               </div>
@@ -2434,9 +2701,7 @@ function App() {
                 onClick={
                   handleVerifyEmail
                 }
-                disabled={
-                  authLoading
-                }
+                disabled={authLoading}
               >
                 {authLoading ? (
                   <>
@@ -2444,9 +2709,7 @@ function App() {
                     Verifying...
                   </>
                 ) : (
-                  <>
-                    Verify Email ✓
-                  </>
+                  <>Verify Email ✓</>
                 )}
               </button>
 
@@ -2454,16 +2717,16 @@ function App() {
                 type="button"
                 className="auth-back-button"
                 onClick={() => {
-                  setAuthMode(
-                    "login"
+                  setAuthMode("login");
+
+                  setShowForgotPasswordLink(
+                    false
                   );
-                  setShowForgotPasswordLink(false);
+
                   setAuthError("");
                   setAuthSuccess("");
                 }}
-                disabled={
-                  authLoading
-                }
+                disabled={authLoading}
               >
                 ← Back to Login
               </button>
@@ -2557,9 +2820,7 @@ function App() {
   return (
     <div className="app-container">
 
-      {/* ========================================
-          SIDEBAR
-          ======================================== */}
+      {/* SIDEBAR */}
 
       <aside className="sidebar">
         <div className="brand">
@@ -2577,7 +2838,6 @@ function App() {
         </div>
 
         <nav className="sidebar-nav">
-
           <button
             type="button"
             className={
@@ -2685,16 +2945,9 @@ function App() {
         </div>
       </aside>
 
-      {/* ========================================
-          MAIN
-          ======================================== */}
+      {/* MAIN */}
 
       <main className="dashboard">
-
-        {/* ========================================
-            DASHBOARD SECTION
-            ======================================== */}
-
         <section
           id="dashboard-section"
           className="dashboard-section dashboard-main-section"
@@ -2766,7 +3019,8 @@ function App() {
                   level is{" "}
                   <strong>
                     {dashboard.risk_level}
-                  </strong>.
+                  </strong>
+                  .
                 </p>
               </div>
 
@@ -2784,9 +3038,7 @@ function App() {
 
         {dashboard && (
           <>
-            {/* ========================================
-                PERFORMANCE SECTION
-                ======================================== */}
+            {/* PERFORMANCE */}
 
             <section
               id="performance-section"
@@ -2824,7 +3076,6 @@ function App() {
                 </div>
 
                 <div className="subject-comparison">
-
                   <div className="subject-card highest">
                     <div className="subject-icon">
                       🏆
@@ -2864,7 +3115,6 @@ function App() {
                       </strong>
                     </div>
                   </div>
-
                 </div>
 
                 <div className="trend-section">
@@ -2915,9 +3165,7 @@ function App() {
               </div>
             </section>
 
-            {/* ========================================
-                ANALYTICS SECTION
-                ======================================== */}
+            {/* ANALYTICS */}
 
             <section
               id="analytics-section"
@@ -2938,7 +3186,6 @@ function App() {
               </div>
 
               <div className="stats-grid">
-
                 <div className="stat-card">
                   <div className="stat-top">
                     <span>
@@ -3027,13 +3274,10 @@ function App() {
                     Current performance status
                   </div>
                 </div>
-
               </div>
             </section>
 
-            {/* ========================================
-                INSIGHTS SECTION
-                ======================================== */}
+            {/* INSIGHTS */}
 
             <section
               id="insights-section"
@@ -3054,7 +3298,6 @@ function App() {
               </div>
 
               <div className="panel insight-panel">
-
                 <div className="panel-header">
                   <div>
                     <h2>
@@ -3105,16 +3348,13 @@ function App() {
                 >
                   🤖 Ask AI Assistant
                 </button>
-
               </div>
             </section>
           </>
         )}
       </main>
 
-      {/* ========================================
-          PROFILE MODAL
-          ======================================== */}
+      {/* PROFILE MODAL */}
 
       {isProfileOpen && (
         <div
@@ -3170,7 +3410,6 @@ function App() {
             </div>
 
             <div className="profile-details">
-
               <div className="profile-detail-item">
                 <span>
                   🎓 Student ID
@@ -3202,7 +3441,6 @@ function App() {
                   Student
                 </strong>
               </div>
-
             </div>
 
             <div className="profile-actions">
@@ -3214,6 +3452,16 @@ function App() {
                 }
               >
                 🔒 Change Password
+              </button>
+
+              <button
+                type="button"
+                className="change-password-button"
+                onClick={
+                  openChangeEmail
+                }
+              >
+                ✉️ Change Email
               </button>
 
               <button
@@ -3230,9 +3478,7 @@ function App() {
         </div>
       )}
 
-      {/* ========================================
-          CHANGE PASSWORD MODAL
-          ======================================== */}
+      {/* CHANGE PASSWORD MODAL */}
 
       {isChangePasswordOpen && (
         <div
@@ -3285,6 +3531,8 @@ function App() {
 
             <div className="password-form">
 
+              {/* CURRENT PASSWORD */}
+
               <div className="form-group">
                 <label>
                   Current Password
@@ -3309,7 +3557,8 @@ function App() {
                       )
                     }
                     disabled={
-                      passwordChangeLoading
+                      passwordChangeLoading ||
+                      passwordCodeSending
                     }
                   />
 
@@ -3318,12 +3567,12 @@ function App() {
                     className="password-toggle"
                     onClick={() =>
                       setShowCurrentPassword(
-                        (prev) =>
-                          !prev
+                        (prev) => !prev
                       )
                     }
                     disabled={
-                      passwordChangeLoading
+                      passwordChangeLoading ||
+                      passwordCodeSending
                     }
                   >
                     {showCurrentPassword
@@ -3333,106 +3582,190 @@ function App() {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>
-                  New Password
-                </label>
+              {/* SEND CODE */}
 
-                <div className="input-wrapper password-wrapper">
-                  <span>🔑</span>
+              {!passwordCodeSent && (
+                <button
+                  type="button"
+                  className="change-password-button"
+                  onClick={
+                    handleSendPasswordChangeCode
+                  }
+                  disabled={
+                    passwordCodeSending ||
+                    passwordChangeLoading
+                  }
+                >
+                  {passwordCodeSending ? (
+                    <>
+                      <span className="button-spinner" />
+                      Sending Code...
+                    </>
+                  ) : (
+                    <>
+                      ✉️ Send Verification Code
+                    </>
+                  )}
+                </button>
+              )}
 
-                  <input
-                    type={
-                      showNewPassword
-                        ? "text"
-                        : "password"
-                    }
-                    placeholder="Enter new password"
-                    value={
-                      newPassword
-                    }
-                    onChange={(event) =>
-                      setNewPassword(
-                        event.target.value
-                      )
-                    }
-                    disabled={
-                      passwordChangeLoading
-                    }
-                  />
+              {/* CODE */}
 
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() =>
-                      setShowNewPassword(
-                        (prev) =>
-                          !prev
-                      )
-                    }
-                    disabled={
-                      passwordChangeLoading
-                    }
-                  >
-                    {showNewPassword
-                      ? "🙈"
-                      : "👁️"}
-                  </button>
-                </div>
-              </div>
+              {passwordCodeSent && (
+                <>
+                  <div className="verification-email-info">
+                    <div className="verification-icon">
+                      ✉️
+                    </div>
 
-              <div className="form-group">
-                <label>
-                  Confirm New Password
-                </label>
+                    <div>
+                      <strong>
+                        Check your email
+                      </strong>
 
-                <div className="input-wrapper password-wrapper">
-                  <span>🔐</span>
+                      <span>
+                        Enter the 6-digit verification code sent to your registered email.
+                      </span>
+                    </div>
+                  </div>
 
-                  <input
-                    type={
-                      showConfirmPassword
-                        ? "text"
-                        : "password"
-                    }
-                    placeholder="Confirm new password"
-                    value={
-                      confirmPassword
-                    }
-                    onChange={(event) =>
-                      setConfirmPassword(
-                        event.target.value
-                      )
-                    }
-                    disabled={
-                      passwordChangeLoading
-                    }
-                  />
+                  <div className="form-group">
+                    <label>
+                      Verification Code
+                    </label>
 
-                  <button
-                    type="button"
-                    className="password-toggle"
-                    onClick={() =>
-                      setShowConfirmPassword(
-                        (prev) =>
-                          !prev
-                      )
-                    }
-                    disabled={
-                      passwordChangeLoading
-                    }
-                  >
-                    {showConfirmPassword
-                      ? "🙈"
-                      : "👁️"}
-                  </button>
-                </div>
-              </div>
+                    <div className="input-wrapper code-input-wrapper">
+                      <span>🔢</span>
 
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="Enter 6-digit code"
+                        value={
+                          passwordVerificationCode
+                        }
+                        onChange={(event) =>
+                          setPasswordVerificationCode(
+                            event.target.value.replace(
+                              /\D/g,
+                              ""
+                            )
+                          )
+                        }
+                        disabled={
+                          passwordChangeLoading
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  {/* NEW PASSWORD */}
+
+                  <div className="form-group">
+                    <label>
+                      New Password
+                    </label>
+
+                    <div className="input-wrapper password-wrapper">
+                      <span>🔑</span>
+
+                      <input
+                        type={
+                          showNewPassword
+                            ? "text"
+                            : "password"
+                        }
+                        placeholder="Enter new password"
+                        value={
+                          newPassword
+                        }
+                        onChange={(event) =>
+                          setNewPassword(
+                            event.target.value
+                          )
+                        }
+                        disabled={
+                          passwordChangeLoading
+                        }
+                      />
+
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() =>
+                          setShowNewPassword(
+                            (prev) => !prev
+                          )
+                        }
+                        disabled={
+                          passwordChangeLoading
+                        }
+                      >
+                        {showNewPassword
+                          ? "🙈"
+                          : "👁️"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CONFIRM PASSWORD */}
+
+                  <div className="form-group">
+                    <label>
+                      Confirm New Password
+                    </label>
+
+                    <div className="input-wrapper password-wrapper">
+                      <span>🔐</span>
+
+                      <input
+                        type={
+                          showConfirmPassword
+                            ? "text"
+                            : "password"
+                        }
+                        placeholder="Confirm new password"
+                        value={
+                          confirmPassword
+                        }
+                        onChange={(event) =>
+                          setConfirmPassword(
+                            event.target.value
+                          )
+                        }
+                        disabled={
+                          passwordChangeLoading
+                        }
+                      />
+
+                      <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() =>
+                          setShowConfirmPassword(
+                            (prev) => !prev
+                          )
+                        }
+                        disabled={
+                          passwordChangeLoading
+                        }
+                      >
+                        {showConfirmPassword
+                          ? "🙈"
+                          : "👁️"}
+                      </button>
+                    </div>
+                  </div>
+
+                  <small className="field-hint">
+                    Password must be at least 6 characters.
+                  </small>
+                </>
+              )}
             </div>
 
             <div className="password-modal-actions">
-
               <button
                 type="button"
                 className="profile-close-button"
@@ -3440,40 +3773,250 @@ function App() {
                   closeChangePassword
                 }
                 disabled={
-                  passwordChangeLoading
+                  passwordChangeLoading ||
+                  passwordCodeSending
                 }
               >
                 Cancel
               </button>
 
-              <button
-                type="button"
-                className="change-password-button"
-                onClick={
-                  handleChangePassword
-                }
-                disabled={
-                  passwordChangeLoading
-                }
-              >
-                {passwordChangeLoading ? (
-                  <>
-                    <span className="button-spinner" />
-                    Updating...
-                  </>
-                ) : (
-                  "🔒 Update Password"
-                )}
-              </button>
-
+              {passwordCodeSent && (
+                <button
+                  type="button"
+                  className="change-password-button"
+                  onClick={
+                    handleChangePassword
+                  }
+                  disabled={
+                    passwordChangeLoading
+                  }
+                >
+                  {passwordChangeLoading ? (
+                    <>
+                      <span className="button-spinner" />
+                      Updating...
+                    </>
+                  ) : (
+                    "🔒 Update Password"
+                  )}
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* ========================================
-          FLOATING AI
-          ======================================== */}
+      {/* CHANGE EMAIL MODAL */}
+
+      {isChangeEmailOpen && (
+        <div
+          className="modal-overlay"
+          onClick={
+            closeChangeEmail
+          }
+        >
+          <div
+            className="password-modal"
+            onClick={(event) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="modal-header">
+              <div>
+                <h2>
+                  Change Email
+                </h2>
+
+                <p>
+                  Update the email linked to your Student AI account.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="modal-close"
+                onClick={
+                  closeChangeEmail
+                }
+              >
+                ✕
+              </button>
+            </div>
+
+            {emailChangeError && (
+              <div className="password-message error">
+                <span>⚠️</span>
+                {emailChangeError}
+              </div>
+            )}
+
+            {emailChangeSuccess && (
+              <div className="password-message success">
+                <span>✓</span>
+                {emailChangeSuccess}
+              </div>
+            )}
+
+            <div className="password-form">
+
+              {/* NEW EMAIL */}
+
+              <div className="form-group">
+                <label htmlFor="new-email">
+                  New Email Address
+                </label>
+
+                <div className="input-wrapper">
+                  <span>✉️</span>
+
+                  <input
+                    id="new-email"
+                    type="email"
+                    placeholder="Enter your new email address"
+                    value={newEmail}
+                    onChange={(event) =>
+                      setNewEmail(
+                        event.target.value
+                      )
+                    }
+                    autoComplete="email"
+                    disabled={
+                      emailCodeSending ||
+                      emailChangeLoading ||
+                      emailCodeSent
+                    }
+                  />
+                </div>
+
+                <small className="field-hint">
+                  A verification code will be sent to this new email address.
+                </small>
+              </div>
+
+              {/* SEND EMAIL CODE */}
+
+              {!emailCodeSent && (
+                <button
+                  type="button"
+                  className="change-password-button"
+                  onClick={
+                    handleRequestEmailChange
+                  }
+                  disabled={
+                    emailCodeSending ||
+                    emailChangeLoading
+                  }
+                >
+                  {emailCodeSending ? (
+                    <>
+                      <span className="button-spinner" />
+                      Sending Code...
+                    </>
+                  ) : (
+                    <>
+                      ✉️ Send Verification Code
+                    </>
+                  )}
+                </button>
+              )}
+
+              {/* VERIFY EMAIL CODE */}
+
+              {emailCodeSent && (
+                <>
+                  <div className="verification-email-info">
+                    <div className="verification-icon">
+                      ✉️
+                    </div>
+
+                    <div>
+                      <strong>
+                        Check your new email
+                      </strong>
+
+                      <span>
+                        Enter the 6-digit verification code sent to your new email address.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="email-change-code">
+                      Verification Code
+                    </label>
+
+                    <div className="input-wrapper code-input-wrapper">
+                      <span>🔢</span>
+
+                      <input
+                        id="email-change-code"
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="Enter 6-digit code"
+                        value={
+                          emailVerificationCode
+                        }
+                        onChange={(event) =>
+                          setEmailVerificationCode(
+                            event.target.value.replace(
+                              /\D/g,
+                              ""
+                            )
+                          )
+                        }
+                        disabled={
+                          emailChangeLoading
+                        }
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="password-modal-actions">
+              <button
+                type="button"
+                className="profile-close-button"
+                onClick={
+                  closeChangeEmail
+                }
+                disabled={
+                  emailCodeSending ||
+                  emailChangeLoading
+                }
+              >
+                Cancel
+              </button>
+
+              {emailCodeSent && (
+                <button
+                  type="button"
+                  className="change-password-button"
+                  onClick={
+                    handleVerifyEmailChange
+                  }
+                  disabled={
+                    emailChangeLoading
+                  }
+                >
+                  {emailChangeLoading ? (
+                    <>
+                      <span className="button-spinner" />
+                      Verifying...
+                    </>
+                  ) : (
+                    "✓ Verify & Update Email"
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FLOATING AI */}
 
       {!isChatOpen && (
         <button
@@ -3492,9 +4035,7 @@ function App() {
         </button>
       )}
 
-      {/* ========================================
-          CHAT
-          ======================================== */}
+      {/* CHAT */}
 
       {isChatOpen && (
         <>
@@ -3506,10 +4047,8 @@ function App() {
           />
 
           <aside className="chat-panel">
-
             <div className="chat-panel-header">
               <div className="chat-title">
-
                 <div className="chat-avatar">
                   🤖
                 </div>
@@ -3523,7 +4062,6 @@ function App() {
                     Your academic assistant
                   </span>
                 </div>
-
               </div>
 
               <button
@@ -3537,7 +4075,6 @@ function App() {
             </div>
 
             <div className="chat-messages">
-
               {messages.map(
                 (msg, index) => (
                   <div
@@ -3565,7 +4102,6 @@ function App() {
             </div>
 
             <div className="chat-input-area">
-
               <input
                 type="text"
                 placeholder="Ask about your academics..."
@@ -3590,12 +4126,10 @@ function App() {
               >
                 ➤
               </button>
-
             </div>
           </aside>
         </>
       )}
-
     </div>
   );
 }

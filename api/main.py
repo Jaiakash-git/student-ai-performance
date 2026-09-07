@@ -649,7 +649,7 @@ def register(
                 SELECT
                     user_id
                 FROM users
-                WHERE LOWER(email) = %s
+                WHERE email = %s
                   AND user_id != %s
                 """,
                 (
@@ -716,7 +716,7 @@ def register(
                 SELECT
                     user_id
                 FROM users
-                WHERE LOWER(email) = %s
+                WHERE email = %s
                 """,
                 (
                     email,
@@ -1134,7 +1134,7 @@ def send_email_verification(
             SELECT
                 user_id
             FROM users
-            WHERE LOWER(email) = %s
+            WHERE email = %s
               AND user_id != %s
             """,
             (

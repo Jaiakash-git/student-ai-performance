@@ -38,12 +38,20 @@ def execute_tool(
     tool_name,
     student_name,
     user_input=None,
-    context=None
+    context=None,
+    cache=None
 ):
     """
     Execute one tool based on the tool
     selected by the planner.
+
+    cache:
+        Request-level cache shared between
+        all tools during one agent request.
     """
+
+    if cache is None:
+        cache = {}
 
     # ======================================
     # BASIC PERFORMANCE TOOLS
@@ -51,44 +59,51 @@ def execute_tool(
 
     if tool_name == "average":
         return get_average(
-            student_name
+            student_name,
+            cache
         )
 
     if tool_name == "attendance":
         return get_attendance(
-            student_name
+            student_name,
+            cache
         )
 
     if tool_name == "highest_subject":
         return get_highest_subject(
-            student_name
+            student_name,
+            cache
         )
 
     if tool_name == "lowest_subject":
         return get_lowest_subject(
-            student_name
+            student_name,
+            cache
         )
 
     if tool_name == "performance":
         return get_performance(
-            student_name
+            student_name,
+            cache
         )
 
     if tool_name == "risk":
         return get_risk(
-            student_name
+            student_name,
+            cache
         )
 
     if tool_name == "recommendation":
         return get_recommendation(
-            student_name
+            student_name,
+            cache
         )
 
     if tool_name == "trend":
         return get_trend(
-            student_name
+            student_name,
+            cache
         )
-
 
     # ======================================
     # SUBJECT DETAIL
@@ -125,7 +140,6 @@ def execute_tool(
             subject
         )
 
-
     # ======================================
     # SUBJECT TREND
     # ======================================
@@ -158,9 +172,9 @@ def execute_tool(
 
         return get_subject_trend(
             student_name,
-            subject
+            subject,
+            cache
         )
-
 
     # ======================================
     # SUBJECT EXPLANATION
@@ -237,12 +251,8 @@ def execute_tool(
 
         # ----------------------------------
         # IMPORTANT:
-        # Check the CURRENT USER QUESTION
+        # Check CURRENT USER QUESTION
         # BEFORE highest/lowest explanation.
-        #
-        # This fixes:
-        # "Is that good?"
-        # "Is that bad?"
         # ----------------------------------
 
         user_text = (
@@ -368,7 +378,6 @@ def execute_tool(
                 "explanation_type": "evaluation"
             }
 
-
         # ==================================
         # WHY AFTER LOWEST SUBJECT
         # ==================================
@@ -399,7 +408,6 @@ def execute_tool(
                 "explanation": explanation,
                 "explanation_type": "lowest"
             }
-
 
         # ==================================
         # WHY AFTER HIGHEST SUBJECT
@@ -432,7 +440,6 @@ def execute_tool(
                 "explanation_type": "highest"
             }
 
-
         # ==================================
         # GENERIC EXPLANATION
         # ==================================
@@ -446,7 +453,6 @@ def execute_tool(
                 f"we were discussing."
             )
         }
-
 
     # ======================================
     # RAG / ACADEMIC QUESTION
@@ -466,13 +472,11 @@ def execute_tool(
             user_input
         )
 
-
     # ======================================
     # GREETING
     # ======================================
 
     if tool_name == "greeting":
-
         return {
             "success": True,
             "response": (
@@ -482,13 +486,11 @@ def execute_tool(
             )
         }
 
-
     # ======================================
     # THANKS
     # ======================================
 
     if tool_name == "thanks":
-
         return {
             "success": True,
             "response": (
@@ -498,20 +500,17 @@ def execute_tool(
             )
         }
 
-
     # ======================================
     # GOODBYE
     # ======================================
 
     if tool_name == "goodbye":
-
         return {
             "success": True,
             "response": (
                 f"Goodbye, {student_name}! 👋"
             )
         }
-
 
     # ======================================
     # UNKNOWN TOOL
@@ -552,7 +551,6 @@ def run_agent(
         student_name
     )
 
-
     # ======================================
     # CREATE PLAN
     # ======================================
@@ -562,13 +560,11 @@ def run_agent(
         context
     )
 
-
     # ======================================
     # NO TOOL REQUIRED
     # ======================================
 
     if not plan:
-
         response = (
             "I don't know which tool to use "
             "for this question."
@@ -583,6 +579,22 @@ def run_agent(
             "context": context
         }
 
+    # ======================================
+    # REQUEST-LEVEL CACHE
+    # ======================================
+    #
+    # This cache exists ONLY for this
+    # run_agent() request.
+    #
+    # It is intentionally NOT stored inside
+    # conversation context because marks and
+    # attendance can change.
+    #
+    # All tools executed below share this
+    # same dictionary.
+    # ======================================
+
+    data_cache = {}
 
     # ======================================
     # EXECUTE TOOLS
@@ -598,7 +610,8 @@ def run_agent(
                 tool_name,
                 student_name,
                 user_input,
-                context
+                context,
+                data_cache
             )
 
         except Exception as error:
@@ -613,7 +626,6 @@ def run_agent(
 
         results[tool_name] = result
 
-
         # ----------------------------------
         # UPDATE MEMORY
         # ----------------------------------
@@ -625,7 +637,6 @@ def run_agent(
             user_input
         )
 
-
     # ======================================
     # GENERATE RESPONSE
     # ======================================
@@ -635,7 +646,6 @@ def run_agent(
         results,
         student_name
     )
-
 
     # ======================================
     # RETURN COMPLETE RESULT
@@ -667,58 +677,36 @@ if __name__ == "__main__":
     test_questions = [
 
         "What is my lowest subject?",
-
         "How much?",
-
         "Why?",
-
         "Is that good?",
-
         "Is that bad?",
-
         "How did I improve?",
 
         "What is my highest subject?",
-
         "How much?",
-
         "Why?",
-
         "Is that good?",
-
         "Is that bad?",
-
         "How did I improve?",
 
         "What is my average?",
-
         "What is my attendance?",
-
         "Am I performing well?",
-
         "Am I at risk?",
-
         "What should I improve?",
-
         "What is my trend?",
 
         "What is my average and attendance?",
-
         "What are my highest and lowest subjects?",
-
         "Tell me my performance and risk.",
 
         "hii",
-
         "hello",
-
         "thanks",
-
         "okay",
-
         "bye"
     ]
-
 
     print(
         "\n========================================"
@@ -731,7 +719,6 @@ if __name__ == "__main__":
     print(
         "========================================"
     )
-
 
     for question in test_questions:
 
@@ -770,3 +757,4 @@ if __name__ == "__main__":
         )
 
         context = result["context"]
+

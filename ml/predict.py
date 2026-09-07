@@ -2,18 +2,17 @@ import joblib
 import pandas as pd
 
 
+# Load trained model once when this module is imported
+MODEL_PATH = "ml/student_performance_model.pkl"
+model = joblib.load(MODEL_PATH)
+
+
 def predict_performance(
     average_marks,
     attendance,
     highest_mark,
     lowest_mark
 ):
-
-    # Load trained model
-    model = joblib.load(
-        "ml/student_performance_model.pkl"
-    )
-
     # Prepare student data
     student_data = pd.DataFrame([{
         "average_marks": average_marks,

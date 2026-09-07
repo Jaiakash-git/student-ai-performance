@@ -31,12 +31,85 @@ from rag.rag_pipeline import (
 
 
 # ==========================================
+# REQUEST-LEVEL DATA CACHE
+# ==========================================
+
+def _get_student_id_cached(student_name, cache):
+    if "student_id" not in cache:
+        cache["student_id"] = get_student_id(
+            student_name
+        )
+
+    return cache["student_id"]
+
+
+def _get_marks_cached(student_name, cache):
+    if "marks" not in cache:
+        cache["marks"] = get_student_marks(
+            student_name
+        )
+
+    return cache["marks"]
+
+
+def _get_attendance_cached(student_name, cache):
+    if "attendance" not in cache:
+        student_id = _get_student_id_cached(
+            student_name,
+            cache
+        )
+
+        if student_id is None:
+            cache["attendance"] = None
+        else:
+            cache["attendance"] = get_student_attendance(
+                student_id
+            )
+
+    return cache["attendance"]
+
+
+def _get_exam_marks_cached(student_name, cache):
+    if "exam_marks" not in cache:
+        cache["exam_marks"] = get_student_exam_marks(
+            student_name
+        )
+
+    return cache["exam_marks"]
+
+
+def _get_performance_cached(student_name, cache):
+    if "performance" not in cache:
+        marks = _get_marks_cached(
+            student_name,
+            cache
+        )
+
+        if not marks:
+            cache["performance"] = None
+            return None
+
+        attendance = _get_attendance_cached(
+            student_name,
+            cache
+        )
+
+        cache["performance"] = analyze_performance(
+            marks,
+            attendance
+        )
+
+    return cache["performance"]
+
+
+# ==========================================
 # GET STUDENT DATA
 # ==========================================
 
 def get_student_data(student_name):
-
-    student_id = get_student_id(student_name)
+    student_id = get_student_id(
+        student_name
+    )
 
     if student_id is None:
         return {
@@ -44,9 +117,17 @@ def get_student_data(student_name):
             "message": "Student not found."
         }
 
-    marks = get_student_marks(student_name)
-    exam_marks = get_student_exam_marks(student_name)
-    attendance = get_student_attendance(student_id)
+    marks = get_student_marks(
+        student_name
+    )
+
+    exam_marks = get_student_exam_marks(
+        student_name
+    )
+
+    attendance = get_student_attendance(
+        student_id
+    )
 
     return {
         "success": True,
@@ -62,9 +143,14 @@ def get_student_data(student_name):
 # GET AVERAGE
 # ==========================================
 
-def get_average(student_name):
+def get_average(student_name, cache=None):
+    if cache is None:
+        cache = {}
 
-    student_id = get_student_id(student_name)
+    student_id = _get_student_id_cached(
+        student_name,
+        cache
+    )
 
     if student_id is None:
         return {
@@ -72,8 +158,10 @@ def get_average(student_name):
             "message": "Student not found."
         }
 
-    marks = get_student_marks(student_name)
-    attendance = get_student_attendance(student_id)
+    marks = _get_marks_cached(
+        student_name,
+        cache
+    )
 
     if not marks:
         return {
@@ -81,14 +169,19 @@ def get_average(student_name):
             "message": "No marks found."
         }
 
-    average, _, _, _ = analyze_performance(
-        marks,
-        attendance
+    performance = _get_performance_cached(
+        student_name,
+        cache
     )
+
+    average, _, _, _ = performance
 
     return {
         "success": True,
-        "average": round(float(average), 2)
+        "average": round(
+            float(average),
+            2
+        )
     }
 
 
@@ -96,9 +189,14 @@ def get_average(student_name):
 # GET ATTENDANCE
 # ==========================================
 
-def get_attendance(student_name):
+def get_attendance(student_name, cache=None):
+    if cache is None:
+        cache = {}
 
-    student_id = get_student_id(student_name)
+    student_id = _get_student_id_cached(
+        student_name,
+        cache
+    )
 
     if student_id is None:
         return {
@@ -106,8 +204,10 @@ def get_attendance(student_name):
             "message": "Student not found."
         }
 
-    marks = get_student_marks(student_name)
-    attendance = get_student_attendance(student_id)
+    marks = _get_marks_cached(
+        student_name,
+        cache
+    )
 
     if not marks:
         return {
@@ -115,10 +215,12 @@ def get_attendance(student_name):
             "message": "No student data found."
         }
 
-    _, _, _, overall_attendance = analyze_performance(
-        marks,
-        attendance
+    performance = _get_performance_cached(
+        student_name,
+        cache
     )
+
+    _, _, _, overall_attendance = performance
 
     return {
         "success": True,
@@ -133,9 +235,14 @@ def get_attendance(student_name):
 # GET HIGHEST SUBJECT
 # ==========================================
 
-def get_highest_subject(student_name):
+def get_highest_subject(student_name, cache=None):
+    if cache is None:
+        cache = {}
 
-    student_id = get_student_id(student_name)
+    student_id = _get_student_id_cached(
+        student_name,
+        cache
+    )
 
     if student_id is None:
         return {
@@ -143,8 +250,10 @@ def get_highest_subject(student_name):
             "message": "Student not found."
         }
 
-    marks = get_student_marks(student_name)
-    attendance = get_student_attendance(student_id)
+    marks = _get_marks_cached(
+        student_name,
+        cache
+    )
 
     if not marks:
         return {
@@ -152,12 +261,12 @@ def get_highest_subject(student_name):
             "message": "No marks found."
         }
 
-    _, highest_mark, highest_subject, _ = (
-        analyze_performance(
-            marks,
-            attendance
-        )
+    performance = _get_performance_cached(
+        student_name,
+        cache
     )
+
+    _, highest_mark, highest_subject, _ = performance
 
     return {
         "success": True,
@@ -173,9 +282,14 @@ def get_highest_subject(student_name):
 # GET LOWEST SUBJECT
 # ==========================================
 
-def get_lowest_subject(student_name):
+def get_lowest_subject(student_name, cache=None):
+    if cache is None:
+        cache = {}
 
-    marks = get_student_marks(student_name)
+    marks = _get_marks_cached(
+        student_name,
+        cache
+    )
 
     if not marks:
         return {
@@ -206,7 +320,6 @@ def get_mark_for_subject(
     student_name,
     subject
 ):
-
     if not subject:
         return {
             "success": False,
@@ -247,7 +360,6 @@ def get_subject_detail(
     student_name,
     subject
 ):
-
     if not subject:
         return {
             "success": False,
@@ -286,17 +398,21 @@ def get_subject_detail(
 
 def get_subject_trend(
     student_name,
-    subject
+    subject,
+    cache=None
 ):
-
     if not subject:
         return {
             "success": False,
             "message": "Subject name is required."
         }
 
-    exam_results = get_student_exam_marks(
-        student_name
+    if cache is None:
+        cache = {}
+
+    exam_results = _get_exam_marks_cached(
+        student_name,
+        cache
     )
 
     if not exam_results:
@@ -327,7 +443,6 @@ def get_subject_trend(
     ) in trend:
 
         if trend_subject.lower() == subject.lower():
-
             return {
                 "success": True,
                 "subject": trend_subject,
@@ -358,9 +473,14 @@ def get_subject_trend(
 # GET PERFORMANCE
 # ==========================================
 
-def get_performance(student_name):
+def get_performance(student_name, cache=None):
+    if cache is None:
+        cache = {}
 
-    student_id = get_student_id(student_name)
+    student_id = _get_student_id_cached(
+        student_name,
+        cache
+    )
 
     if student_id is None:
         return {
@@ -368,8 +488,10 @@ def get_performance(student_name):
             "message": "Student not found."
         }
 
-    marks = get_student_marks(student_name)
-    attendance = get_student_attendance(student_id)
+    marks = _get_marks_cached(
+        student_name,
+        cache
+    )
 
     if not marks:
         return {
@@ -377,12 +499,17 @@ def get_performance(student_name):
             "message": "No marks found."
         }
 
-    average, _, _, overall_attendance = (
-        analyze_performance(
-            marks,
-            attendance
-        )
+    performance = _get_performance_cached(
+        student_name,
+        cache
     )
+
+    (
+        average,
+        _,
+        _,
+        overall_attendance
+    ) = performance
 
     if (
         average >= 85
@@ -423,9 +550,14 @@ def get_performance(student_name):
 # GET RISK
 # ==========================================
 
-def get_risk(student_name):
+def get_risk(student_name, cache=None):
+    if cache is None:
+        cache = {}
 
-    student_id = get_student_id(student_name)
+    student_id = _get_student_id_cached(
+        student_name,
+        cache
+    )
 
     if student_id is None:
         return {
@@ -433,8 +565,10 @@ def get_risk(student_name):
             "message": "Student not found."
         }
 
-    marks = get_student_marks(student_name)
-    attendance = get_student_attendance(student_id)
+    marks = _get_marks_cached(
+        student_name,
+        cache
+    )
 
     if not marks:
         return {
@@ -442,15 +576,17 @@ def get_risk(student_name):
             "message": "No marks found."
         }
 
+    performance = _get_performance_cached(
+        student_name,
+        cache
+    )
+
     (
         average,
         highest_mark,
         _,
         overall_attendance
-    ) = analyze_performance(
-        marks,
-        attendance
-    )
+    ) = performance
 
     lowest_mark = min(
         float(mark)
@@ -501,10 +637,13 @@ def get_risk(student_name):
 # GET TREND
 # ==========================================
 
-def get_trend(student_name):
+def get_trend(student_name, cache=None):
+    if cache is None:
+        cache = {}
 
-    exam_results = get_student_exam_marks(
-        student_name
+    exam_results = _get_exam_marks_cached(
+        student_name,
+        cache
     )
 
     if not exam_results:
@@ -570,9 +709,17 @@ def get_trend(student_name):
 # GET RECOMMENDATION
 # ==========================================
 
-def get_recommendation(student_name):
+def get_recommendation(
+    student_name,
+    cache=None
+):
+    if cache is None:
+        cache = {}
 
-    student_id = get_student_id(student_name)
+    student_id = _get_student_id_cached(
+        student_name,
+        cache
+    )
 
     if student_id is None:
         return {
@@ -580,8 +727,10 @@ def get_recommendation(student_name):
             "message": "Student not found."
         }
 
-    marks = get_student_marks(student_name)
-    attendance = get_student_attendance(student_id)
+    marks = _get_marks_cached(
+        student_name,
+        cache
+    )
 
     if not marks:
         return {
@@ -589,15 +738,17 @@ def get_recommendation(student_name):
             "message": "No marks found."
         }
 
+    performance = _get_performance_cached(
+        student_name,
+        cache
+    )
+
     (
         average,
         highest_mark,
         highest_subject,
         overall_attendance
-    ) = analyze_performance(
-        marks,
-        attendance
-    )
+    ) = performance
 
     lowest_subject, lowest_mark = min(
         marks,
@@ -635,7 +786,6 @@ def get_recommendation(student_name):
 # ==========================================
 
 def answer_academic_question(question):
-
     if not question:
         return {
             "success": False,
@@ -651,4 +801,3 @@ def answer_academic_question(question):
         "answer": answer,
         "retrieved_results": results
     }
-

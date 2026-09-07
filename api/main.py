@@ -321,15 +321,14 @@ def send_email_verification_code(
     recipient_email: str,
     verification_code: str
 ):
-
     check_smtp_configuration()
 
-    message = EmailMessage()
+    print("EMAIL DEBUG: Creating message...")
 
+    message = EmailMessage()
     message["Subject"] = (
         "Student AI Assistant - Email Verification"
     )
-
     message["From"] = SMTP_FROM_EMAIL
     message["To"] = recipient_email
 
@@ -354,22 +353,27 @@ Student AI Assistant
 """
     )
 
+    print("EMAIL DEBUG: Connecting to Gmail SMTP...")
+
     with smtplib.SMTP(
         SMTP_HOST,
         SMTP_PORT,
         timeout=15
     ) as server:
 
+        
+
         server.starttls()
 
+      
         server.login(
             SMTP_USERNAME,
             SMTP_PASSWORD
         )
 
-        server.send_message(
-            message
-        )
+       
+
+        server.send_message(message)
 
 
 # ==========================================
